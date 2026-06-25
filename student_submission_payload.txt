@@ -1,0 +1,51 @@
+=====================================================================
+STUDENT — HOW TO SUBMIT YOUR CODE
+=====================================================================
+
+STEP 1: Log in as a student at http://localhost:5173
+STEP 2: Select the assignment from the list (teacher shares assignmentId)
+STEP 3: Write or paste your HTML, CSS, JS in the code editor
+STEP 4: Click "Submit" — evaluation runs automatically
+STEP 5: Wait for results to appear (usually 10–30 seconds)
+
+=====================================================================
+SAMPLE SUBMISSION (POST /api/submissions via API — or just use the UI)
+=====================================================================
+
+POST /api/submissions
+Authorization: Bearer <student_token>
+Content-Type: application/json
+
+{
+  "assignmentId": "<paste the assignmentId from the teacher here>",
+  "html": "<div class='app'>\n  <h1 id='title'>Task Counter</h1>\n  <p id='counter'>0</p>\n  <div class='controls'>\n    <input id='taskInput' type='text' placeholder='Task name' />\n    <button id='increment'>Add Task</button>\n    <button id='reset'>Reset</button>\n  </div>\n  <ul id='taskList'></ul>\n</div>",
+  "css": "body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: Arial, sans-serif; background: #f5f7fb; } .app { width: min(92vw, 520px); background: #fff; border: 1px solid #d8e1f0; border-radius: 12px; padding: 20px; } #counter { font-size: 24px; font-weight: 700; } .controls { display: flex; gap: 10px; margin-bottom: 14px; } #taskInput { flex: 1; padding: 8px; border: 1px solid #b8c6e8; border-radius: 8px; } button { padding: 8px 12px; border: none; border-radius: 8px; background: #2f80ed; color: #fff; cursor: pointer; }",
+  "js": "const counterEl = document.getElementById('counter');\nconst inputEl = document.getElementById('taskInput');\nconst addBtn = document.getElementById('increment');\nconst resetBtn = document.getElementById('reset');\nconst listEl = document.getElementById('taskList');\nlet count = 0;\n\naddBtn.addEventListener('click', () => {\n  const text = inputEl.value.trim();\n  if (!text) { alert('Enter a task'); return; }\n  const li = document.createElement('li');\n  li.className = 'task-item';\n  li.textContent = text;\n  listEl.appendChild(li);\n  count += 1;\n  counterEl.textContent = String(count);\n  inputEl.value = '';\n});\n\nresetBtn.addEventListener('click', () => {\n  count = 0;\n  counterEl.textContent = '0';\n  listEl.innerHTML = '';\n  inputEl.value = '';\n});"
+}
+
+--- RESPONSE (202 Accepted) ---
+{
+  "submissionId": "a1b2c3d4-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+
+=====================================================================
+SCORING BREAKDOWN (100 marks total)
+=====================================================================
+
+  Linter Quality         10 marks  (HTMLHint + Stylelint + ESLint)
+  Functionality Tests    40 marks  (behavior tests defined by teacher)
+  Interaction Tests      15 marks  (click/type simulations)
+  Visual Layout Match    20 marks  (pixel comparison vs reference)
+  Performance            15 marks  (Lighthouse score)
+  ─────────────────────────────────
+  Total                 100 marks
+
+=====================================================================
+COMMON MISTAKES TO AVOID
+=====================================================================
+
+  - Make sure element IDs match exactly (e.g. #counter, #taskInput, #increment, #reset, #taskList)
+  - alert() must be called with the exact message the teacher specified
+  - Counter must display as plain text (e.g. "0", "1", "2"), not "Count: 1"
+  - Each task must be added as an <li> inside #taskList
+  - Input must be cleared after adding a task

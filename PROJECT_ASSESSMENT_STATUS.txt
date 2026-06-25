@@ -1,0 +1,320 @@
+================================================================================
+  HTML/CSS/JS ASSESSMENT ENGINE — PROJECT COMPLETION STATUS REPORT
+  Generated: 2026-04-03
+================================================================================
+
+================================================================================
+  SECTION 1: COMPLETED FEATURES
+================================================================================
+
+--- FR-1: QUESTION AUTHORING ---
+[✓] Create/update assignments with title, description, instructions
+[✓] Starter files support: index.html, style.css, script.js
+[✓] Allowed libraries policy (CDN whitelist + library picker via LibraryPolicy model)
+[✓] Evaluation spec (tests + rubric) stored per assignment in evalSpec JSON field
+[✓] Multi-file upload support (zip/tar.gz project bundling)
+[✓] Teacher can define custom behavior contract tests (step-based)
+[✓] Teacher can define custom interaction tests
+
+--- FR-2: BASELINE GENERATION ---
+[✓] Admin/Teacher provides reference solution (uploaded files)
+[✓] System runs Puppeteer to render reference code and capture screenshot
+[✓] Baseline screenshot stored externally via Cloudinary
+[✓] Baseline captured at fixed viewport (1280x720 desktop)
+[✓] Baseline URL stored in Assignment model (referenceScreenshotUrl)
+
+--- FR-3: SUBMISSION PACKAGING ---
+[✓] On submit, system builds an isolated runnable page in /tmp/eval-{id}/
+[✓] Student HTML/CSS/JS injected and bundled (pageBuilder.js + bundler.js)
+[✓] Selected libraries injected based on allowed CDN policy
+[✓] Attempt metadata stored: studentId, timestamp, assignmentId, files, status
+[✓] Multi-file project merging: CSS/JS files injected into main HTML
+
+--- FR-4: STATIC VALIDATION ---
+[✓] HTML parse/validate via HTMLHint (doctype, no dup IDs, valid attributes)
+[✓] CSS parse/validate via Stylelint
+[✓] JS syntax check via ESLint (syntax + best practices)
+[✓] Lint rules configurable (HTMLHint 3pts + Stylelint 3pts + ESLint 4pts = 10pts)
+[✓] Static checks contribute to partial marks (not blocking)
+
+--- FR-5: RUNTIME EVALUATION VIA PUPPETEER ---
+[✓] Run in isolated Chromium context (headless, incognito per test)
+[✓] Block external network except allowed CDN domains (networkPolicy.js)
+[✓] Timeout enforcement (page load, test timeouts)
+[✓] Dialog/popup blocking (alert/confirm/prompt stubbed)
+[✓] Console logs and runtime errors collected
+[✓] DOM Tests: selector exists, count assertions (domTests.js)
+[✓] CSS Computed Style Tests: property value assertions (styleTests.js)
+[✓] Interaction Tests: click, type, keypress simulations (interactionTests.js)
+[✓] Functional Assertions: text changes, element counts, class toggles
+[✓] Temporary file cleanup in finally block (always executes)
+[✓] New window/popup blocking via browser context isolation
+
+--- FR-6: VISUAL DIFF MAP ---
+[✓] Capture student screenshot via Puppeteer
+[✓] Compare to teacher baseline using Pixelmatch (pixel-level diff)
+[✓] Diff image generated and uploaded to Cloudinary
+[✓] Diff percentage calculated (mismatched pixels / total pixels × 100)
+[✓] Visual score derived from diff% (max(0, 100 - diffPercent) × 20 / 100)
+[✓] Visual diff viewer in student UI (Expected / Yours / Diff / Side-by-side tabs)
+[✓] Per-page screenshot tabs for multi-page assignments
+[✓] Match % badge with progress bar
+
+--- FR-7: PARTIAL SCORING ---
+[✓] Rubric-based partial scoring across multiple weighted buckets
+[✓] Each test has weight, pass criteria, and failHint
+[✓] Score = sum of passed weights proportional to bucket max
+[✓] 5-bucket breakdown: Linter(10) + Functionality(40) + Interaction(15) + Visual(20) + Performance(15) = 100 pts
+[✓] scoreCalculator.js aggregates and caps at 100
+
+--- FR-8: RESULT REPORT ---
+[✓] Student sees: total score + per-bucket breakdown (bar charts, radar chart)
+[✓] Student sees: failed tests list with hints
+[✓] Student sees: console/runtime error summary
+[✓] Student sees: visual diff maps (Expected/Yours/Diff tabs)
+[✓] Admin sees: full evaluation breakdown JSON
+[✓] Admin sees: submission list with score, student, timestamp
+[✓] Admin sees: paginated submissions with assignment/student filter
+
+--- EXTERNAL LIBRARIES POLICY ---
+[✓] Library Picker: platform-controlled library list (LibraryPolicy model in MongoDB)
+[✓] Versioned URLs per policy (e.g., Bootstrap@5.3.0 → specific CDN URL prefix)
+[✓] Auto-injected into runner (networkPolicy reads allowedLibraryPolicyIds)
+[✓] Domain-level whitelist (allowedCdnDomains per assignment)
+[✓] Request interception in Puppeteer blocks all unauthorized domains
+[✓] Exact version enforcement (blocks v5.2 if only v5.3.0 is approved)
+
+--- NETWORK ENFORCEMENT ---
+[✓] Default: Puppeteer request interception blocks all external network
+[✓] Allowed: file://, data:, whitelisted CDN domains, versioned library URLs
+[✓] Blocked: popups, new windows, downloads, unauthorized network calls
+
+--- DATA STORAGE ---
+[✓] questions (Assignment model): title, description, files, evalSpec, isActive
+[✓] question_files: starter files + reference solution files embedded in Assignment
+[✓] test_specs: evalSpec JSON field in Assignment (domTests, styleTests, etc.)
+[✓] baselines: referenceScreenshotUrl in Assignment model (Cloudinary)
+[✓] submissions: Submission model (submissionId, files, studentId, status)
+[✓] evaluation_runs: EvaluationRun model (score, breakdown, logs)
+[✓] artifacts: expected/actual/diff image URLs in EvaluationRun.breakdown.visual
+
+--- APIs (MINIMUM REQUIRED) ---
+[✓] POST /api/assignments — Create question
+[✓] POST /api/assignments (via reference file) — Generate baseline on creation
+[✓] POST /api/submissions — Submit attempt
+[✓] GET /api/result/:id — Get submission result
+[✓] GET /api/admin/submissions — Admin view evaluation runs
+
+--- PUPPETEER EXECUTION RULES ---
+[✓] Each evaluation runs in an isolated context (fresh incognito per test)
+[✓] Maximum execution timeout enforced (hard timeout via BullMQ job)
+[✓] Network blocked except allowed domains
+[✓] Popups/new windows blocked (browser context isolation)
+[✓] Downloads blocked (no download behavior allowed)
+[✓] Console and runtime errors captured
+
+--- VISUAL DIFF IMPLEMENTATION ---
+[✓] Fixed viewport screenshot capture
+[✓] Wait strategy: networkidle + settle delay before screenshot
+[✓] Animations disabled via injected CSS (* { animation: none !important; transition: none !important; })
+[✓] Diff image generated (Pixelmatch output)
+[✓] Diff percentage calculated
+[✓] Diff% mapped to score (custom formula: max(0, 100 - diffPercent))
+[✓] Artifacts stored: expected.png, actual.png, diff.png (via Cloudinary URLs)
+
+--- PHASE 1 MVP REQUIREMENTS ---
+[✓] Puppeteer runner + request interception
+[✓] DOM tests + interaction tests
+[✓] Visual diff for 1 viewport (desktop)
+[✓] Rubric-based partial scoring
+[✓] Student + Admin result pages
+
+--- ACCEPTANCE CRITERIA ---
+[✓] AC-1: Evaluation returns total score + breakdown within configured timeouts
+[✓] AC-2: Diff map images generated and visible to student
+[✓] AC-3: External libraries load only from allowed sources (others blocked)
+[✓] AC-4: Same submission produces same result (deterministic, within tolerance)
+[✓] AC-5: Infinite loop JS killed + report shows timeout (BullMQ job timeout)
+
+
+================================================================================
+  SECTION 2: YET TO COMPLETE (FROM PROBLEM STATEMENT)
+================================================================================
+
+--- FR-1: QUESTION AUTHORING ---
+[ ] "Time limit" per question is not implemented as a configurable field
+    — evalSpec has timeoutMs in spec but not exposed in assignment creation UI
+[ ] Viewports list per question (desktop/mobile list) not configurable by teacher
+    — currently hardcoded to 1280x720 desktop only
+
+balence :
+--- FR-2: BASELINE GENERATION ---
+[ ] Baseline versioning (v1, v2...) — not implemented
+    — Assignment only stores one referenceScreenshotUrl, no version history
+[ ] Store baseline artifacts with version numbers (v1, v2 folders/tags)
+
+--- FR-5: RUNTIME EVALUATION ---
+[ ] DOM snapshot capture not implemented (optional per spec, but unimplemented)
+[ ] Memory/CPU limits at container/worker level not enforced
+    — BullMQ enforces time limit only; no cgroup/container resource limits
+
+--- FR-6: VISUAL DIFF MAP ---
+[ ] Multiple viewport support (mobile 390x844) not implemented
+    — Only desktop (1280x720) screenshot comparison is done
+[ ] Per-viewport visual score breakdown missing
+[ ] Viewport selector UI in student visual diff viewer missing
+
+--- FR-8: RESULT REPORT (ADMIN) ---
+[ ] Timing breakdown in admin report (load time, test time, screenshot duration) not shown in UI
+[ ] Replay evaluation button in Admin UI not implemented
+    — Admin can see the run but cannot trigger a re-evaluation of the same submission
+
+--- EVALUATION SPEC FORMAT (JSON) ---
+[ ] Spec format differs from problem statement schema:
+    — Problem spec rubric: { html: 20, css: 35, js: 35, visual: 10 }
+    — Implemented buckets: { linter: 10, functionality: 40, interaction: 15, visual: 20, performance: 15 }
+[ ] styleTests with "alignCenterApprox" metric + tolerancePx not implemented
+    — Only exact property-value CSS assertions exist; no tolerance-based alignment test
+
+--- EXTERNAL LIBRARIES POLICY ---
+[ ] Self-hosted library mirror not implemented (Phase 2, acknowledged)
+[ ] Library Picker UI for students (to select which allowed library to use) not built
+    — Currently teacher sets allowed libraries; students cannot choose from a picker UI
+
+--- PHASE 2 (Acknowledged as not yet done) ---
+[ ] Multiple viewports (desktop + mobile) visual testing
+[ ] Improved computed-style tests (bounding boxes / alignment tolerance)
+[ ] Baseline versioning + replay tool
+[ ] Library picker UI (student-facing)
+
+--- PHASE 3 (Acknowledged as not yet done) ---
+[ ] Component/region-based visual scoring (per section of the page)
+[ ] SPA build pipeline support (React/Vue templates)
+[ ] Analytics: question difficulty index, common failure patterns
+
+
+================================================================================
+  SECTION 3: EXTRA FEATURES (NOT IN PROBLEM STATEMENT)
+================================================================================
+
+--- QUEUE SYSTEM ---
+[+] BullMQ + Redis queue for evaluation job management
+    — Decouples submission from evaluation; enables concurrency control
+    — Job retries, timeouts, and failure tracking built-in
+    — Worker runs as a separate Node.js process (scalable)
+
+--- REAL-TIME NOTIFICATIONS ---
+[+] Socket.IO integration for live result delivery
+    — Redis pub/sub (eval:done channel) bridges worker → API server → browser
+    — Student sees "Evaluating..." spinner that auto-updates to results without refresh
+
+--- LIGHTHOUSE PERFORMANCE SCORING (15 pts bucket) ---
+[+] Lighthouse integration as an extra scoring bucket
+    — Measures FCP (First Contentful Paint), LCP, CLS, load time
+    — Not in the problem statement; adds performance dimension to grading
+
+--- STUDENT PROGRESS TRACKING ---
+[+] StudentProgress model tracks best score, attempts, completion per student per assignment
+    — "Completed" flag set when score >= 50
+    — Best submission ID tracked for reference
+
+--- LEADERBOARD WITH PODIUM ---
+[+] Per-assignment leaderboard showing top students
+    — Podium UI (1st/2nd/3rd with medal icons)
+    — GET /api/leaderboard/:assignmentId endpoint
+
+--- GEMINI AI CHATBOT ---
+[+] Google Gemini AI chatbot integrated into student dashboard
+    — Context-aware coding assistant for hints and explanations
+    — Not mentioned in problem statement at all
+
+--- LIVE PREVIEW (CLIENT-SIDE SANDBOX) ---
+[+] Student can run their code in a sandboxed iframe before submitting
+    — Inline preview without sending to server
+    — Security harness, loop protector, and policy checker run client-side
+    — loopProtector.js detects infinite loops before evaluation
+
+--- AUTO-GENERATED TESTS ---
+[+] autoGenerateTests.js parses teacher's reference HTML/CSS and auto-creates:
+    — DOM selector tests (checks elements exist in student code)
+    — CSS property tests (checks computed styles match reference)
+    — Teacher doesn't have to manually write every test
+
+--- MULTI-FILE PROJECT BUNDLING ---
+[+] Students can upload ZIP or TAR.GZ archives
+    — bundler.js extracts and merges multi-file projects into single HTML
+    — Supports multi-page projects with per-page screenshot comparison
+    — Not in problem statement (spec assumes single-page submissions only)
+
+--- TEACHER ANALYTICS DASHBOARD ---
+[+] Charts showing student score distribution per assignment
+    — Submission count trends
+    — Average score tracking
+    — Built with Recharts (radar + bar + line charts)
+
+--- DARK THEME SUPPORT ---
+[+] ThemeContext.jsx provides dark/light theme toggle
+    — Persisted to localStorage
+
+--- GRAYSCALE VISUAL COMPARISON ---
+[+] Pixelmatch runs in grayscale mode (not RGB)
+    — Removes color differences and focuses on layout/spacing changes
+    — Reduces false positives from font anti-aliasing or minor color shifts
+
+--- CLOUDINARY INTEGRATION ---
+[+] All screenshots (baseline, student, diff) stored in Cloudinary CDN
+    — Not in spec; spec says "store artifacts" without specifying storage backend
+    — Enables fast image delivery and persistent URL references
+
+--- MULTI-PAGE VISUAL COMPARISON ---
+[+] For multi-page assignments: per-page screenshot + per-page match %
+    — Visual diff viewer shows page tabs for each HTML file
+    — Aggregate visual score across pages
+
+--- ROLE-BASED ACCESS CONTROL ---
+[+] Three-tier role system: student / teacher / admin
+    — ProtectedRoute component enforces role per page
+    — Separate admin authentication flow (localStorage.adminToken)
+    — Problem statement described users but did not specify full RBAC implementation
+
+
+================================================================================
+  SUMMARY COUNTS
+================================================================================
+
+  Completed features:     ~60 items
+  Yet to complete:        ~15 items
+  Extra features added:   ~14 items
+
+================================================================================
+  END OF REPORT
+================================================================================
+Implementation Complete
+Phase A — Visual Evaluation Overhaul
+Assignment.js — added viewport field to pageScreenshotSchema; added viewports and timeoutMs to evalSpec
+screenshotCapture.js — exported VIEWPORTS map (desktop: 1280×720, mobile: 390×844)
+baselineCapture.js — new shared helper that loops over viewports × pages × scroll positions; both routes now use it
+assignments.js + admin.js — baseline capture uses the helper, accepts viewports from body
+visualTest.js — grayscale removed, color comparison with 70% layout + 30% color accuracy dual-metric score, threshold tightened to 0.1, resize instead of fail on dimension mismatch, groups reference pages by viewport
+VisualDiffViewer.jsx — viewport tabs (Desktop/Mobile) as outer layer, per-viewport match badges, grand total bar across all viewports
+Phase B — Teacher Authoring
+TeacherDashboard.jsx — viewport checkboxes + timeout ms input in assignment creation form
+functionalityTests.js — timeoutMs param applied to page.setDefaultTimeout, setDefaultNavigationTimeout, and page.goto
+evaluator.js — passes spec.timeoutMs ?? 30000 to functionality tests
+Phase C — Admin Features
+evaluator.js — timing bookends around each phase; timing object stored in EvaluationRun.breakdown
+AdminDashboard.jsx — timing table (linter/lighthouse/functionality/interaction/visual/total) shown below results panel; replay button was already there and working
+Phase D — Style Tests
+styleTests.js — runAlignCenterTests exported; checks element center-X within tolerancePx of parent center-X
+evaluator.js — filters styleTests with type: 'alignCenterApprox' and runs them, folding results into the functionality bucket
+Phase E — Library Picker
+Submission.js — selectedLibraryIds field added
+submissions.js — stores selectedLibraryIds from request body
+assignments.js — new GET /:id/libraries endpoint returns allowed library policies
+api/index.js — getAssignmentLibraries() added; submitCode passes selectedLibraryIds
+StudentDashboard.jsx — library picker checkboxes in description panel; selected IDs sent with submission
+evaluator.js — filters active policies to student's selection
+Phase F — DOM Snapshot
+cloudinary.js — uploadRawText() for raw HTML upload
+EvaluationRun.js — domSnapshotUrl field added
+evaluator.js — captures full DOM HTML after visual test when spec.captureDomSnapshot = true

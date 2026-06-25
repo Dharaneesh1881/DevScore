@@ -1,0 +1,237 @@
+WEB PROJECT EVALUATION FLOW (END-TO-END)
+========================================
+
+Overview
+--------
+This system evaluates student HTML/CSS/JS submissions using:
+1) Auto-generated DOM/CSS checks
+2) Optional interaction checks
+3) Visual diff against teacher baseline screenshot
+
+Core stack:
+- API server: Express
+- Queue: BullMQ + Redis
+- Worker runner: Puppeteer
+- Storage: MongoDB
+- Image storage/comparison assets: Cloudinary
+- Real-time completion signal: Redis pub/sub -> Socket.IO
+
+
+1) Assignment Creation (Teacher)
+--------------------------------
+Endpoint:
+- POST /api/assignments
+
+What happens:
+1. Teacher sends title + reference HTML/CSS/JS.
+2. Backend auto-generates:
+   - DOM tests from HTML structure
+   - Style tests from HTML + CSS patterns
+3. Assignment is saved with evalSpec (rubric + tests).
+4. Backend renders teacher reference page in Puppeteer.
+5. A reference screenshot is captured and uploaded to Cloudinary.
+6. Assignment stores referenceScreenshotUrl for later visual comparison.
+
+Relevant files:
+- backend/routes/assignments.js
+- backend/utils/autoGenerateTests.js
+- backend/models/Assignment.js
+- backend/utils/cloudinary.js
+
+
+2) Submission Intake (Student)
+------------------------------
+Endpoint:
+- POST /api/submissions
+
+What happens:
+1. Student submits html/css/js + assignmentId.
+2. Backend validates assignment exists.
+3. Creates Submission document with status = "pending".
+4. Adds BullMQ job to queue "evaluation" with:
+   - attempts: 2
+   - backoff: fixed 3000ms
+5. Returns HTTP 202 + submissionId immediately (async processing).
+
+Relevant files:
+- backend/routes/submissions.js
+- backend/models/Submission.js
+- backend/queue/index.js
+
+
+3) Worker Pickup and Status Updates
+-----------------------------------
+Worker:
+- backend/worker/index.js
+
+Flow:
+1. BullMQ worker picks job from queue "evaluation".
+2. Submission status -> "processing".
+3. Calls runEvaluation(submissionId, assignmentId).
+4. If success: status -> "done".
+5. If failure: status -> "error", error re-thrown so BullMQ can retry.
+
+Concurrency:
+- Worker concurrency is 1 (Puppeteer-heavy workload).
+
+
+4) Evaluation Runtime (runEvaluation)
+-------------------------------------
+Main orchestrator:
+- backend/worker/evaluator.js
+
+Detailed steps:
+1. Load submission + assignment from MongoDB.
+2. Build temporary runnable HTML file under /tmp:
+   - /tmp/eval-<submissionId>/index.html
+3. Launch headless browser (Puppeteer).
+4. Run test buckets:
+   a) DOM tests
+   b) Style tests
+   c) Interaction tests (if present in assignment spec)
+   d) Visual test
+5. Close browser and cleanup temp folder.
+6. Compute final score using rubric.
+7. Save EvaluationRun document with per-bucket breakdown.
+8. Publish Redis event "eval:done" with submissionId.
+
+Relevant files:
+- backend/worker/evaluator.js
+- backend/worker/pageBuilder.js
+- backend/models/EvaluationRun.js
+
+
+5) DOM Tests
+------------
+Runner:
+- backend/worker/tests/domTests.js
+
+Execution model:
+1. Opens submission page in isolated browser context.
+2. Blocks external network requests (allows only file:// and data:).
+3. For each test:
+   - check selector exists
+   - optional textContains validation
+4. Each test emits: { name, passed, weight, earned }.
+
+
+6) Style Tests
+--------------
+Runner:
+- backend/worker/tests/styleTests.js
+
+Execution model:
+1. Opens page in isolated context with fixed viewport (1280x720).
+2. For each test:
+   - query selector
+   - read computed style property
+   - execute stored check function
+3. Emits weighted pass/fail results.
+
+
+7) Interaction Tests
+--------------------
+Runner:
+- backend/worker/tests/interactionTests.js
+
+Execution model:
+1. Opens isolated page context.
+2. Stubs browser dialogs:
+   - window.alert, confirm, prompt
+3. Executes scripted steps:
+   - click, type, keypress
+4. Validates assertions like:
+   - alertCalled
+   - elementExists
+   - textContains
+   - textChanged
+   - countEquals
+5. Produces weighted pass/fail result per test.
+
+
+8) Visual Test
+--------------
+Runner:
+- backend/worker/visualTest.js
+
+Execution model:
+1. If no teacher baseline image URL exists:
+   - visual returns diffScore=0 (full penalty for visual bucket).
+2. Capture student screenshot (1280x720, animations/transitions neutralized).
+3. Upload student screenshot to Cloudinary.
+4. Download teacher baseline image from Cloudinary.
+5. Compare both images with pixelmatch (threshold 0.1).
+6. Compute:
+   - diffPercent = mismatchedPixels / totalPixels * 100
+   - diffScore   = max(0, 100 - diffPercent)
+7. Upload diff image to Cloudinary.
+8. Return visual metrics + image URLs.
+
+
+9) Scoring Formula
+------------------
+Calculator:
+- backend/worker/scoreCalculator.js
+
+Per-bucket formula (HTML/CSS/JS):
+- ratio = earnedWeight / totalWeight
+- bucketScore = ratio * rubricBucketMax
+
+Visual formula:
+- visualScore = (diffScore / 100) * rubric.visual
+
+Final:
+- totalScore = htmlScore + cssScore + jsScore + visualScore
+- Rounded to 1 decimal place.
+
+Default rubric (from assignment model):
+- html: 30
+- css: 25
+- js: 30
+- visual: 15
+
+
+10) Result Delivery to Frontend
+-------------------------------
+API polling endpoint:
+- GET /api/result/:id
+  - returns 202 while pending/processing
+  - returns done payload when evaluation record exists
+
+Real-time completion:
+1. Worker publishes Redis channel: eval:done
+2. API server subscribes and emits Socket.IO event:
+   - event name: evaluation:complete
+3. Frontend listens for event and fetches final result.
+
+Relevant files:
+- backend/index.js
+- frontend/src/api/index.js
+- frontend/src/pages/StudentDashboard.jsx
+
+
+11) Data Records Created
+------------------------
+Submission document:
+- submissionId, assignmentId, studentId
+- files (html/css/js)
+- status: pending -> processing -> done/error
+
+EvaluationRun document:
+- submissionId
+- completedAt
+- totalScore
+- breakdown:
+  - html bucket
+  - css bucket
+  - js bucket
+  - visual bucket (includes screenshot/diff URLs)
+
+
+12) Failure/Retry Behavior
+--------------------------
+- Worker sets status "error" on exceptions.
+- Job is retried by BullMQ (up to configured attempts).
+- If visual baseline missing/download fails, visual score degrades while other buckets can still score.
+- External network is blocked during browser evaluation to keep runs deterministic and safe.
+

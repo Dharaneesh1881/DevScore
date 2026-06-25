@@ -1,0 +1,335 @@
+index.html
+----------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDN Policy Demo</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main id="app" class="demo-shell">
+    <section id="card" class="demo-card">
+      <p class="eyebrow">Network Policy Demo</p>
+      <h1 id="hero-title" class="hero-title">Tailwind + Google Fonts</h1>
+      <p class="hero-copy">
+        This page should look dramatically different depending on whether
+        <code>cdn.tailwindcss.com</code>, <code>fonts.googleapis.com</code>,
+        and <code>fonts.gstatic.com</code> are allowed for the assignment.
+      </p>
+
+      <div class="status-grid">
+        <article class="status-box">
+          <span class="status-label">Tailwind</span>
+          <strong id="tailwind-status">Loading...</strong>
+        </article>
+        <article class="status-box">
+          <span class="status-label">Google Font</span>
+          <strong id="font-status">Loading...</strong>
+        </article>
+      </div>
+
+      <div id="demo-panel" class="demo-panel">
+        <div class="panel-accent"></div>
+        <div>
+          <p class="panel-label">Expected behavior when domains are allowed</p>
+          <p class="panel-text">
+            Bright gradient background, rounded card, bold utility-based spacing,
+            and the Space Grotesk heading font.
+          </p>
+        </div>
+      </div>
+
+      <div id="pill-row" class="pill-row">
+        <span class="pill">Utilities</span>
+        <span class="pill">Typography</span>
+        <span class="pill">Visual Diff</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="./main.js" defer></script>
+</body>
+</html>
+
+
+style.css
+---------
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+
+:root {
+  color-scheme: dark;
+  --bg: #070b1b;
+  --surface: #10172d;
+  --surface-strong: #17213d;
+  --border: rgba(138, 162, 255, 0.22);
+  --text: #f5f7ff;
+  --muted: #9aa7d1;
+  --accent: #69e3ff;
+  --accent-2: #8b5cf6;
+  --success: #3fb950;
+  --danger: #f85149;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(105, 227, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, #0a1020 0%, #060913 100%);
+  color: var(--text);
+  font-family: "Space Grotesk", Georgia, serif;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.92em;
+  color: #ffd580;
+}
+
+.demo-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+}
+
+.demo-card {
+  width: min(860px, 100%);
+  background: rgba(16, 23, 45, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.45);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.hero-title {
+  margin: 0;
+  font-size: clamp(40px, 8vw, 72px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.hero-copy {
+  margin: 18px 0 0;
+  max-width: 64ch;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.status-box {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.status-label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.status-box strong {
+  font-size: 22px;
+}
+
+.demo-panel {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(105, 227, 255, 0.12), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(105, 227, 255, 0.18);
+}
+
+.panel-accent {
+  width: 14px;
+  align-self: stretch;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+.panel-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #b8c5f5;
+}
+
+.panel-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-weight: 600;
+}
+
+body.font-blocked .hero-title {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.01em;
+}
+
+body.tailwind-blocked #tailwind-status,
+body.font-blocked #font-status {
+  color: var(--danger);
+}
+
+body.tailwind-ready #tailwind-status,
+body.font-ready #font-status {
+  color: var(--success);
+}
+
+@media (max-width: 640px) {
+  .demo-card {
+    padding: 22px;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .panel-accent {
+    width: 100%;
+    height: 12px;
+  }
+}
+
+
+main.js
+-------
+const tailwindStatus = document.querySelector('#tailwind-status');
+const fontStatus = document.querySelector('#font-status');
+const app = document.querySelector('#app');
+const card = document.querySelector('#card');
+const panel = document.querySelector('#demo-panel');
+const pills = Array.from(document.querySelectorAll('.pill'));
+
+function setText(node, text) {
+  if (node) node.textContent = text;
+}
+
+function applyTailwindEnhancements() {
+  document.body.classList.add('tailwind-ready');
+  document.body.classList.remove('tailwind-blocked');
+  setText(tailwindStatus, 'Allowed');
+
+  app.className = 'min-h-screen grid place-items-center px-5 py-10 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.24),_transparent_28%),linear-gradient(180deg,#050816_0%,#02040a_100%)]';
+  card.className = 'w-full max-w-4xl rounded-[32px] border border-cyan-400/25 bg-slate-950/85 p-8 md:p-10 shadow-[0_40px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl';
+  panel.className = 'mt-7 flex items-center gap-4 rounded-[24px] border border-cyan-300/20 bg-gradient-to-r from-cyan-400/10 to-fuchsia-500/10 p-5';
+
+  pills.forEach((pill, index) => {
+    pill.className = [
+      'inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold',
+      index === 0 ? 'bg-cyan-400 text-slate-950' : '',
+      index === 1 ? 'bg-fuchsia-500/20 text-fuchsia-100 border border-fuchsia-400/30' : '',
+      index === 2 ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/25' : ''
+    ].join(' ').trim();
+  });
+}
+
+function markTailwindBlocked() {
+  document.body.classList.add('tailwind-blocked');
+  document.body.classList.remove('tailwind-ready');
+  setText(tailwindStatus, 'Blocked');
+}
+
+function loadTailwind() {
+  return new Promise((resolve, reject) => {
+    const configScript = document.createElement('script');
+    configScript.textContent = `
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['Space Grotesk', 'sans-serif']
+            }
+          }
+        }
+      };
+    `;
+    document.head.appendChild(configScript);
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.tailwindcss.com';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function checkFont() {
+  try {
+    await document.fonts.load('700 48px "Space Grotesk"');
+    document.body.classList.add('font-ready');
+    document.body.classList.remove('font-blocked');
+    setText(fontStatus, 'Allowed');
+  } catch {
+    document.body.classList.add('font-blocked');
+    document.body.classList.remove('font-ready');
+    setText(fontStatus, 'Blocked');
+  }
+}
+
+(async () => {
+  try {
+    await loadTailwind();
+    applyTailwindEnhancements();
+  } catch {
+    markTailwindBlocked();
+  }
+
+  await checkFont();
+})();

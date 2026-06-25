@@ -1,0 +1,52 @@
+services:
+  # ── 1. API Server (Express + Socket.IO) ──────────────────────────────────
+  - type: web
+    name: webeval-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false          # paste in Render dashboard
+      - key: REDIS_URL
+        sync: false          # paste Upstash Redis URL
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false          # your Vercel URL, e.g. https://webeval.vercel.app
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ADMIN_SECRET
+        sync: false          # optional — if used
+
+  # ── 2. Evaluation Worker (BullMQ + Puppeteer) ────────────────────────────
+  - type: worker
+    name: webeval-worker
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npx puppeteer browsers install chrome
+    startCommand: node worker/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer

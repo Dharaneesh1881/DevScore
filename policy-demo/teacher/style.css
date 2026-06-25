@@ -1,0 +1,41 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f0f4f8;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+.card {
+  border-radius: 14px;
+  border: none;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.task-item.done .task-text {
+  text-decoration: line-through;
+  color: #aaa;
+}
+
+.task-text {
+  flex: 1;
+  margin-left: 10px;
+  font-size: 0.95rem;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 6px;
+}

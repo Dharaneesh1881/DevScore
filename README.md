@@ -1,1 +1,2 @@
-# DevScore
+# WebProjectEvaluation
+Hackathon project 

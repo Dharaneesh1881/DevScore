@@ -1,0 +1,165 @@
+=====================================================================
+TEACHER — HOW TO CREATE AN ASSIGNMENT
+=====================================================================
+
+STEP 1: Go to Teacher Dashboard → click "+ New Assignment"
+STEP 2: Fill in Title, Description, HTML/CSS/JS (reference solution)
+STEP 3: Paste the TESTS JSON below into the "Tests JSON" textarea
+STEP 4: Click "Create Assignment" → copy the assignmentId from the response
+STEP 5: Give students the assignmentId so they can submit
+
+OR — to update tests on an existing assignment:
+  Click "Edit Tests" on the assignment card → paste the same JSON → Save
+
+=====================================================================
+TESTS JSON (paste into "Tests JSON" textarea)
+=====================================================================
+
+{
+  "functionalityTests": [
+    {
+      "id": "fn-1",
+      "name": "Counter increases on Add Task",
+      "marks": 10,
+      "steps": [
+        { "action": "read",  "selector": "#counter",   "saveAs": "before" },
+        { "action": "type",  "selector": "#taskInput", "value": "Learn JS" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "read",  "selector": "#counter",   "saveAs": "after" }
+      ],
+      "assert": { "type": "incrementedBy", "from": "before", "to": "after", "by": 1 },
+      "failHint": "Clicking Add Task should increase #counter by 1."
+    },
+    {
+      "id": "fn-2",
+      "name": "A task item is added to list",
+      "marks": 10,
+      "steps": [
+        { "action": "type",  "selector": "#taskInput", "value": "Task A" },
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assert": { "type": "countEquals", "selector": "#taskList li", "value": 1 },
+      "failHint": "After adding one task, #taskList should contain one <li>."
+    },
+    {
+      "id": "fn-3",
+      "name": "Reset sets counter to zero",
+      "marks": 10,
+      "steps": [
+        { "action": "type",  "selector": "#taskInput", "value": "Task B" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#reset" }
+      ],
+      "assert": { "type": "textEquals", "selector": "#counter", "value": "0" },
+      "failHint": "Reset should set #counter text back to 0."
+    },
+    {
+      "id": "fn-4",
+      "name": "Alert shows on empty task submit",
+      "marks": 10,
+      "steps": [
+        { "action": "clear", "selector": "#taskInput" },
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assert": { "type": "alertCalled", "messageContains": "Enter a task" },
+      "failHint": "Clicking Add Task with empty input should call alert('Enter a task')."
+    }
+  ],
+  "interactionTests": [
+    {
+      "name": "Add Task button adds item to list",
+      "weight": 5,
+      "steps": [
+        { "action": "type",  "selector": "#taskInput", "value": "Test Task" },
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assert": { "type": "countEquals", "selector": "#taskList li", "value": 1 }
+    },
+    {
+      "name": "Reset clears task list",
+      "weight": 5,
+      "steps": [
+        { "action": "type",  "selector": "#taskInput", "value": "Task X" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#reset" }
+      ],
+      "assert": { "type": "countEquals", "selector": "#taskList li", "value": 0 }
+    },
+    {
+      "name": "Input clears after adding task",
+      "weight": 5,
+      "steps": [
+        { "action": "type",  "selector": "#taskInput", "value": "Task Y" },
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assert": { "type": "inputCleared", "selector": "#taskInput" }
+    }
+  ]
+}
+
+=====================================================================
+REFERENCE HTML/CSS/JS (paste into the code editor in the UI)
+=====================================================================
+
+--- HTML ---
+<div class='app'>
+  <h1 id='title'>Task Counter</h1>
+  <p id='counter'>0</p>
+  <div class='controls'>
+    <input id='taskInput' type='text' placeholder='Task name' />
+    <button id='increment'>Add Task</button>
+    <button id='reset'>Reset</button>
+  </div>
+  <ul id='taskList'></ul>
+</div>
+
+--- CSS ---
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  font-family: Arial, sans-serif;
+  background: #f5f7fb;
+}
+.app {
+  width: min(92vw, 520px);
+  background: #ffffff;
+  border: 1px solid #d8e1f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+#counter { font-size: 24px; font-weight: 700; margin: 0 0 14px; }
+.controls { display: flex; gap: 10px; margin-bottom: 14px; }
+#taskInput { flex: 1; padding: 8px 10px; border: 1px solid #b8c6e8; border-radius: 8px; }
+button { padding: 8px 12px; border: none; border-radius: 8px; background: #2f80ed; color: #fff; cursor: pointer; }
+button:hover { background: #1a6cda; }
+#taskList { margin: 0; padding-left: 20px; }
+
+--- JS ---
+const counterEl = document.getElementById('counter');
+const inputEl   = document.getElementById('taskInput');
+const addBtn    = document.getElementById('increment');
+const resetBtn  = document.getElementById('reset');
+const listEl    = document.getElementById('taskList');
+let count = 0;
+
+addBtn.addEventListener('click', () => {
+  const text = inputEl.value.trim();
+  if (!text) { alert('Enter a task'); return; }
+  const li = document.createElement('li');
+  li.className = 'task-item';
+  li.textContent = text;
+  listEl.appendChild(li);
+  count += 1;
+  counterEl.textContent = String(count);
+  inputEl.value = '';
+});
+
+resetBtn.addEventListener('click', () => {
+  count = 0;
+  counterEl.textContent = '0';
+  listEl.innerHTML = '';
+  inputEl.value = '';
+});

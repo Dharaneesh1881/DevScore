@@ -1,0 +1,22 @@
+/* Custom styles for Library Policy Demo */
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#counter-display {
+  font-size: 3rem;
+  transition: transform 0.1s ease;
+}
+
+#counter-display.bump {
+  transform: scale(1.2);
+}
+
+#color-box {
+  transition: background 0.4s ease;
+}
+
+.card {
+  border-radius: 12px;
+}

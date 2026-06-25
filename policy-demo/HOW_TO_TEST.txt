@@ -1,0 +1,120 @@
+===============================================================
+  Library Policy Demo — Correct Workflow
+===============================================================
+
+WHY BOOTSTRAP WASN'T LOADING (Root Cause)
+------------------------------------------
+When a teacher creates an assignment, the reference screenshot
+is captured immediately. If no CDN domains are set at that
+moment, Bootstrap is BLOCKED during capture → unstyled reference.
+
+Even if the admin links library policies AFTER creation, the
+reference screenshot stays as the old unstyled version.
+
+Fix: After linking policies, click the 🔄 (orange refresh) button
+to regenerate the reference screenshot with Bootstrap loaded.
+
+===============================================================
+STEP 1 — Admin: Set Up Library Policies
+===============================================================
+Admin → Libraries tab → Add Library:
+
+  Bootstrap 5.3.0
+  ─────────────────
+  Name:    Bootstrap
+  Version: 5.3.0
+  CDN URL Prefixes:
+    https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/
+    https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/
+
+  jQuery 3.7.0
+  ─────────────
+  Name:    jQuery
+  Version: 3.7.0
+  CDN URL Prefixes:
+    https://code.jquery.com/jquery-3.7.0.min.js
+    https://cdn.jsdelivr.net/npm/jquery@3.7.0/
+
+===============================================================
+STEP 2 — Teacher: Create Assignment
+===============================================================
+Teacher Dashboard → New Assignment
+
+  Title:       Task Manager Assignment
+  Description: Build a task manager using Bootstrap and jQuery
+
+  Upload files from  policy-demo/teacher/ :
+    → index.html
+    → style.css
+    → app.js
+
+  Allowed CDN Domains (IMPORTANT — enter these):
+    cdn.jsdelivr.net
+    code.jquery.com
+
+  Submit the assignment.
+
+===============================================================
+STEP 3 — Admin: Link Policies + Regenerate Baseline
+===============================================================
+Admin → Assignments tab → find the assignment
+
+  a) Click 📦 (purple package icon)
+     → Check: Bootstrap 5.3.0 ✓
+     → Check: jQuery 3.7.0 ✓
+     → Click Save
+     (This auto-adds CDN domains from the policies)
+
+  b) Click 🔄 (orange refresh icon) — "Regenerate Baseline"
+     Wait for: "✓ Baseline regenerated (N screenshots)"
+
+  Now the reference screenshot shows a FULLY STYLED Bootstrap page.
+
+===============================================================
+STEP 4 — Student: Submit Code
+===============================================================
+Student → open the Task Manager assignment
+Upload files from  policy-demo/student/ :
+  → index.html
+  → style.css
+  → app.js
+
+The student's version is intentionally INCOMPLETE:
+  ✗ Button is green (btn-success) instead of blue (btn-primary)
+  ✗ Missing task count badge ("0 tasks")
+  ✗ Missing error message for empty input
+  ✗ Missing checkbox to mark tasks done
+  ✗ Missing line-through style for completed tasks
+
+===============================================================
+EXPECTED EVALUATION RESULTS
+===============================================================
+After baseline regeneration:
+
+  Visual score:     ~70-85%  (different button color, missing badge)
+  DOM tests:        some fail (missing #error-msg, missing badge)
+  Style tests:      some fail (missing .done line-through)
+  Functionality:    some fail (no Enter key, no checkbox)
+
+  Overall score:    ~50-70/100
+
+If visuals STILL show 100% match after following these steps:
+  → Check that allowedCdnDomains includes cdn.jsdelivr.net
+  → Verify policies are linked (shows "2 libraries linked" under assignment)
+  → Click 🔄 again to re-capture baseline
+  → Check backend logs for "Baseline regeneration failed"
+
+===============================================================
+CORRECT CDN URLS (copy-paste these exactly)
+===============================================================
+
+Bootstrap 5.3.0 CSS:
+  https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
+
+Bootstrap 5.3.0 JS:
+  https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
+
+jQuery 3.7.0:
+  https://code.jquery.com/jquery-3.7.0.min.js
+
+===============================================================
