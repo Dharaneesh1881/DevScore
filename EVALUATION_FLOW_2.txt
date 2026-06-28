@@ -1,0 +1,372 @@
+DEVSCORE — EVALUATION FLOW V2 (CURRENT AS OF 2026-06-28)
+=========================================================
+
+Overview
+--------
+DevScore evaluates student HTML/CSS/JS submissions across FIVE independent
+scoring buckets that run in parallel. Total marks: 100.
+
+  Bucket 1 — Linter          10 marks   (code quality: HTML + CSS + JS)
+  Bucket 2 — Performance      15 marks   (native Puppeteer engine metrics)
+  Bucket 3 — Functionality    40 marks   (behavior contract test engine)
+  Bucket 4 — Interaction      15 marks   (click/type/keypress simulations)
+  Bucket 5 — Visual           20 marks   (pixel-level screenshot comparison)
+
+Core stack:
+  API server  → Express
+  Queue       → BullMQ + Redis
+  Browser     → Puppeteer (headless Chromium)
+  Storage     → MongoDB
+  Screenshots → Cloudinary
+  Real-time   → Redis pub/sub → Socket.IO
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 1 — ASSIGNMENT CREATION (Teacher)
+═══════════════════════════════════════════════════════════════════════════════
+
+Endpoint: POST /api/assignments
+
+1. Teacher submits:
+   - Title, description
+   - Reference HTML / CSS / JS (the "gold standard" solution)
+   - evalSpec JSON (test cases for all buckets)
+   - Optional: allowedCdnDomains, allowedLibraryPolicyIds
+
+2. Backend auto-generates additional tests from the reference HTML/CSS
+   using autoGenerateTests.js (DOM structure checks + style checks).
+   These are merged with any manually authored tests.
+
+3. Assignment is saved to MongoDB (Assignment model) with:
+   - evalSpec (rubric + all test definitions)
+   - referencePageScreenshots[] or referenceScreenshotUrl (legacy)
+
+4. Backend renders the teacher's reference HTML in headless Puppeteer and
+   captures a screenshot at 1280×720 (desktop). This baseline image is
+   uploaded to Cloudinary and its URL stored in the assignment document.
+
+Relevant files:
+  backend/routes/assignments.js
+  backend/utils/autoGenerateTests.js
+  backend/models/Assignment.js
+  backend/utils/cloudinary.js
+  backend/worker/baselineCapture.js
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 2 — SUBMISSION INTAKE (Student)
+═══════════════════════════════════════════════════════════════════════════════
+
+Endpoint: POST /api/submissions
+
+1. Student submits html / css / js files + assignmentId.
+2. Backend validates assignment exists.
+3. Creates Submission document (status = "pending").
+4. Enqueues BullMQ job on queue "evaluation":
+   - attempts: 2
+   - backoff: fixed 3000 ms
+5. Returns HTTP 202 + submissionId immediately (async).
+
+Relevant files:
+  backend/routes/submissions.js
+  backend/models/Submission.js
+  backend/queue/index.js
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 3 — WORKER PICKUP
+═══════════════════════════════════════════════════════════════════════════════
+
+Worker: backend/worker/index.js
+Concurrency: 1 (Puppeteer is CPU/memory heavy)
+
+1. BullMQ worker dequeues job.
+2. Sets Submission status → "processing".
+3. Calls runEvaluation(submissionId, assignmentId).
+4. On success: status → "done".
+5. On failure: status → "error", re-throws so BullMQ can retry.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 4 — EVALUATION RUNTIME (runEvaluation)
+═══════════════════════════════════════════════════════════════════════════════
+
+Orchestrator: backend/worker/evaluator.js
+
+Step-by-step:
+
+  [A] Load submission + assignment from MongoDB (parallel).
+
+  [B] Build temp HTML file under /tmp/eval-<submissionId>/index.html
+      (via pageBuilder.js — inlines CSS and JS into a single runnable file).
+
+  [C] Run linters + launch Puppeteer browser IN PARALLEL:
+        → runLinters(html, css, js)
+        → puppeteer.launch(...)
+
+  [D] Run Performance metrics using the already-open browser (~150ms).
+
+  [E] Run three test buckets IN PARALLEL (each gets its own BrowserContext):
+        → Bucket 3: runFunctionalityTests  (40 marks)
+        → Bucket 4: runInteractionTests    (15 marks)
+        → Bucket 5: runVisualTest          (20 marks)
+
+  [F] Close browser + clean up /tmp folder.
+
+  [G] calculateScore() aggregates all 5 bucket results → totalScore/100.
+
+  [H] Save EvaluationRun document to MongoDB with full per-bucket breakdown.
+
+  [I] Upsert StudentProgress (attempts++, bestScore, completed flag if ≥50).
+
+  [J] Publish Redis event "eval:done" → Socket.IO event "evaluation:complete"
+      → student frontend shows result.
+
+  [K] 30 seconds after completion: delete the previous submission record
+      (only the latest attempt per student per assignment is kept).
+
+Relevant files:
+  backend/worker/evaluator.js
+  backend/worker/pageBuilder.js
+  backend/models/EvaluationRun.js
+  backend/models/StudentProgress.js
+
+
+═══════════════════════════════════════════════════════════════════════════════
+BUCKET 1 — LINTER (10 marks)
+═══════════════════════════════════════════════════════════════════════════════
+
+Runner: backend/worker/linterRunner.js
+Mode:   Pure Node.js — no browser required, runs in parallel with browser launch.
+
+Sub-buckets:
+  HTMLHint  (max 3)  — html-validate rules
+  Stylelint (max 3)  — CSS best-practice rules
+  ESLint    (max 4)  — JS quality rules
+
+HTMLHint rules enforced:
+  doctype-html (error), no-dup-attr (error), no-dup-id (error),
+  element-required-attributes (warn: lang, alt), attr-case (warn),
+  deprecated (warn)
+
+HTMLHint scoring:
+  0 errors + 0 warnings  → 3
+  0 errors + has warnings → 2
+  1–2 errors              → 1
+  3+ errors               → 0
+
+Stylelint rules enforced:
+  color-no-invalid-hex, no-duplicate-selectors, block-no-empty,
+  property-no-unknown, selector-pseudo-class-no-unknown, unit-no-unknown,
+  declaration-no-important (warn), shorthand-property-no-redundant-values (warn)
+
+Stylelint scoring:
+  0 errors + 0 warnings  → 3
+  0 errors + has warnings → 2
+  1–2 errors              → 1
+  3+ errors               → 0
+
+ESLint rules enforced:
+  no-undef (error), no-eval (error), no-unreachable (error),
+  no-duplicate-case (error), no-unused-vars (warn), eqeqeq (warn),
+  no-var (warn), semi (warn), prefer-const (warn)
+
+ESLint scoring:
+  0 errors + 0 warnings      → 4
+  0 errors + ≤3 warnings     → 3
+  0 errors + >3 warnings     → 2
+  1–2 errors                 → 1
+  3+ errors                  → 0
+
+Total linter score = htmlhint.score + stylelint.score + eslint.score  (max 10)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+BUCKET 2 — PERFORMANCE (15 marks)
+═══════════════════════════════════════════════════════════════════════════════
+
+Runner:  backend/worker/lighthouseRunner.js
+Method:  Native Puppeteer engine metrics (~150ms, reuses open browser)
+Fallback: Code-size heuristic (used only if page load fails)
+
+Signals measured:
+  coverageScore = clamp(100 - unusedPct × 1.5,  0, 100)   weight 0.30
+  taskScore     = clamp(100 - taskDurationMs/30, 0, 100)   weight 0.30
+  heapScore     = clamp(100 - heapMb × 5,        0, 100)   weight 0.20
+  domScore      = clamp(100 - domNodes / 5,       0, 100)  weight 0.20
+
+  perfScore (0–100) = weighted sum above
+  bucketScore       = (perfScore / 100) × 15
+
+
+═══════════════════════════════════════════════════════════════════════════════
+BUCKET 3 — FUNCTIONALITY (40 marks)
+═══════════════════════════════════════════════════════════════════════════════
+
+Runner: backend/worker/functionalityTests.js
+        backend/worker/tests/styleTests.js  (for alignCenterApprox sub-type)
+Model:  Behavior contract engine — teacher defines WHAT the app should DO.
+
+Each test case schema:
+  { id, name, marks, steps[], assert{}, failHint }
+
+Supported step actions:
+  click, type, read, clear, select, keypress, wait
+
+Supported assertion types:
+  textContains    — element text includes any of the given values
+  textEquals      — element text matches exactly
+  incrementedBy   — saved numeric value increased by N
+  decrementedBy   — saved numeric value decreased by N
+  valueChanged    — saved value changed at all
+  countEquals     — DOM element count equals N
+  countIncreasedBy— DOM element count increased by N
+  isVisible       — element is visible (display/visibility/opacity)
+  isHidden        — element is hidden or absent
+  hasClass        — element has a specific CSS class
+  alertCalled     — alert()/confirm()/prompt() was called, optional message check
+  inputValueEquals— input.value equals expected string
+  inputCleared    — input.value is empty
+  valueInRange    — numeric text value is within [min, max]
+  elementExists   — element exists in DOM
+
+Execution:
+  - Each test case gets its own isolated BrowserContext (no shared state).
+  - Concurrency pool: 5 tests run in parallel per batch.
+  - Dialogs (alert/confirm/prompt) are stubbed via JS + Puppeteer event.
+  - Animations/transitions are neutralized via injected CSS.
+
+Scoring:
+  rawEarned  = sum of marks for passed tests
+  rawMax     = sum of all test marks
+  bucketScore = (rawEarned / rawMax) × 40    (max 40)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+BUCKET 4 — INTERACTION (15 marks)
+═══════════════════════════════════════════════════════════════════════════════
+
+Runner: backend/worker/tests/interactionTests.js
+
+Each test schema:
+  { name, weight, steps[], assertions[] }
+
+Supported step actions:  click, type, keypress
+
+Supported assertion types:
+  alertCalled    — window.alert was called
+  elementExists  — element present in DOM
+  textContains   — element text contains value
+  textChanged    — element text changed from oldText
+  countEquals    — element count equals N
+
+Execution:
+  - Each test gets its own BrowserContext.
+  - All tests run fully in parallel (Promise.all).
+  - alert/confirm/prompt stubbed via evaluateOnNewDocument.
+
+Scoring:
+  earnedWeight = sum of weight for passed tests
+  totalWeight  = sum of all weights
+  ratio        = earnedWeight / totalWeight
+  bucketScore  = ratio × 15    (max 15)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+BUCKET 5 — VISUAL (20 marks)
+═══════════════════════════════════════════════════════════════════════════════
+
+Runner: backend/worker/visualTest.js
+
+If no teacher baseline image exists: diffScore = 0, full penalty.
+
+Steps per page × per viewport:
+  1. Capture student screenshot at the configured viewport (default: 1280×720).
+  2. Upload student screenshot to Cloudinary.
+  3. Download teacher baseline from Cloudinary (parallel with upload).
+  4. If dimensions differ: resize student image (nearest-neighbour).
+  5. Compute dual-metric pixel diff:
+       layoutDiffPct = mismatched pixels / total pixels × 100
+       colorDiffPct  = per-channel average absolute difference (0–100 scale)
+       diffPercent   = 0.7 × layoutDiffPct + 0.3 × colorDiffPct
+       diffScore     = max(0, 100 − diffPercent)
+  6. Upload diff image to Cloudinary.
+
+Multiple pages / viewports: results are averaged.
+
+Scoring:
+  bucketScore = (avgDiffScore / 100) × 20    (max 20)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SCORING FORMULA
+═══════════════════════════════════════════════════════════════════════════════
+
+Calculator: backend/worker/scoreCalculator.js
+
+  linterScore       = min(10,  linterResult.score)
+  performanceScore  = min(15,  (perfScore / 100) × 15)
+  functionalityScore= min(40,  (rawEarned / rawMax) × 40)
+  interactionScore  = min(15,  (earnedWeight / totalWeight) × 15)
+  visualScore       = min(20,  (avgDiffScore / 100) × 20)
+
+  totalScore = linter + performance + functionality + interaction + visual
+             = max 100, rounded to 1 decimal place.
+
+Completion threshold: student is marked "completed" when totalScore ≥ 50.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+RESULT DELIVERY
+═══════════════════════════════════════════════════════════════════════════════
+
+Poll endpoint:    GET /api/result/:submissionId
+  - Returns 202 while status is pending/processing.
+  - Returns full EvaluationRun payload when done.
+
+Real-time:
+  1. Worker publishes Redis channel "eval:done" with submissionId.
+  2. API server (backend/index.js) subscribes and emits Socket.IO event
+     "evaluation:complete" to the frontend.
+  3. StudentDashboard.jsx listens → fetches full result → shows breakdown.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DATA RECORDS CREATED PER EVALUATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Submission document (Submission model):
+  submissionId, assignmentId, studentId
+  files (html/css/js)
+  status: pending → processing → done / error
+
+EvaluationRun document (EvaluationRun model):
+  submissionId, completedAt, totalScore
+  domSnapshotUrl (optional)
+  breakdown:
+    linter      { score, maxScore, htmlhint{}, stylelint{}, eslint{} }
+    functionality { score, maxScore, tests[], rawMax, earned }
+    interaction { score, maxScore, tests[] }
+    visual      { score, maxScore, diffPercent, tests[], screenshot URLs }
+    performance { score, maxScore, performanceScore, metrics{}, source }
+    timing      { linter, performance, functionality, interaction, visual, total }
+
+StudentProgress document (StudentProgress model):
+  studentId, assignmentId
+  attempts (count), bestScore, lastScore
+  completed (bool), completedAt
+  lastSubmissionId
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FAILURE & RETRY BEHAVIOR
+═══════════════════════════════════════════════════════════════════════════════
+
+- BullMQ retries the job up to 2 attempts (fixed 3 s backoff).
+- If visual baseline is missing/download fails: visual score = 0,
+  other buckets still score normally.
+- External network is blocked during browser evaluation (only file:// and
+  whitelisted CDN domains are allowed) — keeps runs deterministic and safe.
+- 30-second cleanup: after successful evaluation the previous submission
+  record (Submission + EvaluationRun) for the same student+assignment is
+  deleted so only the latest attempt is retained.

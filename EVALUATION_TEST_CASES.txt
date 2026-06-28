@@ -1,0 +1,880 @@
+DEVSCORE — EVALUATION TEST CASES (ONE PER BUCKET)
+===================================================
+Assignment: "Simple Counter App"
+Goal: Verify each of the 5 evaluation buckets independently.
+
+Each section below contains:
+  (A) TEACHER REFERENCE — the reference HTML/CSS/JS to paste when creating
+      the assignment, plus the evalSpec JSON for that bucket's tests.
+  (B) STUDENT SUBMISSION — a sample student answer to test with.
+  (C) EXPECTED OUTCOME — what score/result you should see.
+
+HOW TO RUN A TEST
+-----------------
+1. Teacher creates assignment via Teacher Dashboard, pastes reference code
+   and the evalSpec JSON for THAT bucket only (leave other buckets empty []).
+2. Student submits the corresponding student HTML/CSS/JS.
+3. Wait for evaluation to complete, then check the result breakdown.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST 1 — LINTER BUCKET (max 10 marks)
+═══════════════════════════════════════════════════════════════════════════════
+Tests three sub-linters: HTMLHint (3) + Stylelint (3) + ESLint (4).
+Run two students: one perfect, one with deliberate errors.
+
+── TEACHER: Reference HTML ────────────────────────────────────────────────────
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Counter App</title>
+</head>
+<body>
+  <h1 id="title">Counter</h1>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+── TEACHER: Reference CSS ────────────────────────────────────────────────────
+
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background: #f0f4f8;
+  margin: 0;
+}
+#counter {
+  font-size: 48px;
+  font-weight: bold;
+}
+button {
+  padding: 10px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 4px;
+}
+
+── TEACHER: Reference JS ─────────────────────────────────────────────────────
+
+const counter = document.getElementById('counter');
+const addBtn = document.getElementById('increment');
+const resetBtn = document.getElementById('reset');
+let count = 0;
+
+addBtn.addEventListener('click', () => {
+  count += 1;
+  counter.textContent = String(count);
+});
+
+resetBtn.addEventListener('click', () => {
+  count = 0;
+  counter.textContent = '0';
+});
+
+── TEACHER: evalSpec JSON (paste into Tests JSON textarea) ───────────────────
+
+{
+  "functionalityTests": [],
+  "interactionTests": []
+}
+
+(Leave tests empty — we are only testing the Linter bucket here.
+ The linter runs automatically on whatever HTML/CSS/JS the student submits.)
+
+═══════════════════════════════
+TEST 1-A: STUDENT — Perfect code (expect ~10/10 linter)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Counter</title>
+</head>
+<body>
+  <h1 id="title">Counter</h1>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+CSS:
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background: #f0f4f8;
+  margin: 0;
+}
+#counter {
+  font-size: 48px;
+  font-weight: bold;
+}
+button {
+  padding: 10px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 4px;
+}
+
+JS:
+const counter = document.getElementById('counter');
+const addBtn = document.getElementById('increment');
+const resetBtn = document.getElementById('reset');
+let count = 0;
+
+addBtn.addEventListener('click', () => {
+  count += 1;
+  counter.textContent = String(count);
+});
+
+resetBtn.addEventListener('click', () => {
+  count = 0;
+  counter.textContent = '0';
+});
+
+EXPECTED OUTCOME:
+  htmlhint  → 3/3   (DOCTYPE present, no dup IDs, lang attr present)
+  stylelint → 3/3   (no errors, no warnings)
+  eslint    → 4/4   (no errors, no warnings; uses const/let, semi OK)
+  linter    → 10/10
+
+═══════════════════════════════
+TEST 1-B: STUDENT — Deliberately broken code (expect ~2/10 linter)
+═══════════════════════════════
+
+HTML:
+<html>
+<head><title>Counter</title></head>
+<body>
+  <h1 id="title">Counter</h1>
+  <h1 id="title">Duplicate</h1>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="reset" id="reset">Reset</button>
+</body>
+</html>
+
+(Issues: missing DOCTYPE, missing lang, duplicate id="title", duplicate id="reset" attr)
+
+CSS:
+body {
+  color: #zzzzzz;
+}
+body {
+  font-size: 16px;
+}
+button {
+}
+
+(Issues: invalid hex color, duplicate selector, empty block)
+
+JS:
+var x = undeclaredVariable;
+eval("count = 1");
+function foo() {
+  return;
+  console.log("unreachable");
+}
+
+(Issues: no-undef, no-eval, no-unreachable — 3 errors)
+
+EXPECTED OUTCOME:
+  htmlhint  → 0/3   (3+ errors: missing DOCTYPE, dup id="title", dup id="reset")
+  stylelint → 0/3   (3+ errors: invalid hex, dup selector, empty block)
+  eslint    → 0/4   (3+ errors: no-undef, no-eval, no-unreachable)
+  linter    → 0/10
+
+(Total evaluation score will still include performance/visual marks from
+ whatever the browser can render; linter bucket itself = 0.)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST 2 — PERFORMANCE BUCKET (max 15 marks)
+═══════════════════════════════════════════════════════════════════════════════
+Measured by native Puppeteer metrics: coverage (unused code), task duration,
+heap size, DOM node count. Lighter/cleaner code scores higher.
+
+── TEACHER: evalSpec JSON ────────────────────────────────────────────────────
+
+{
+  "functionalityTests": [],
+  "interactionTests": []
+}
+
+(Performance runs automatically — no tests to define.)
+
+═══════════════════════════════
+TEST 2-A: STUDENT — Lean, clean page (expect ~13–15/15 performance)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Counter</title>
+</head>
+<body>
+  <h1 id="counter">0</h1>
+  <button id="increment">+1</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; text-align: center; padding: 40px; }
+h1 { font-size: 64px; }
+button { padding: 12px 24px; margin: 8px; font-size: 16px; cursor: pointer; }
+
+JS:
+const el = document.getElementById('counter');
+const btn = document.getElementById('increment');
+const rst = document.getElementById('reset');
+let n = 0;
+btn.onclick = () => { el.textContent = ++n; };
+rst.onclick = () => { n = 0; el.textContent = 0; };
+
+EXPECTED OUTCOME:
+  Very small DOM (< 20 nodes), minimal JS heap, near-zero task duration,
+  very high coverage ratio (all code used).
+  performance → ~14–15/15
+
+═══════════════════════════════
+TEST 2-B: STUDENT — Bloated page (expect ~5–8/15 performance)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Counter</title>
+</head>
+<body>
+  <h1 id="counter">0</h1>
+  <button id="increment">+1</button>
+  <button id="reset">Reset</button>
+  <!-- 300 unused divs to bloat DOM -->
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div><div></div><div></div>
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; text-align: center; padding: 40px; }
+h1 { font-size: 64px; }
+button { padding: 12px 24px; margin: 8px; font-size: 16px; cursor: pointer; }
+/* Hundreds of unused rules */
+.a1{color:red}.a2{color:blue}.a3{color:green}.a4{color:pink}
+.a5{color:red}.a6{color:blue}.a7{color:green}.a8{color:pink}
+.a9{color:red}.a10{color:blue}.a11{color:green}.a12{color:pink}
+.a13{color:red}.a14{color:blue}.a15{color:green}.a16{color:pink}
+.a17{color:red}.a18{color:blue}.a19{color:green}.a20{color:pink}
+.a21{color:red}.a22{color:blue}.a23{color:green}.a24{color:pink}
+.a25{color:red}.a26{color:blue}.a27{color:green}.a28{color:pink}
+.a29{color:red}.a30{color:blue}.a31{color:green}.a32{color:pink}
+
+JS:
+const el = document.getElementById('counter');
+const btn = document.getElementById('increment');
+const rst = document.getElementById('reset');
+let n = 0;
+btn.onclick = () => { el.textContent = ++n; };
+rst.onclick = () => { n = 0; el.textContent = 0; };
+
+/* Huge unused block of dead code */
+function unused1() { return 1; }
+function unused2() { return 2; }
+function unused3() { return 3; }
+function unused4() { return 4; }
+function unused5() { return 5; }
+function unused6() { return 6; }
+function unused7() { return 7; }
+function unused8() { return 8; }
+function unused9() { return 9; }
+function unused10() { return 10; }
+
+EXPECTED OUTCOME:
+  Large DOM (300+ nodes), high unused CSS ratio.
+  domScore and coverageScore will both be lower.
+  performance → ~5–8/15
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST 3 — FUNCTIONALITY BUCKET (max 40 marks)
+═══════════════════════════════════════════════════════════════════════════════
+Tests the behavior contract engine (steps + assertions).
+
+── TEACHER: evalSpec JSON ────────────────────────────────────────────────────
+
+{
+  "functionalityTests": [
+    {
+      "id": "fn-1",
+      "name": "Counter increments by 1 when Add is clicked",
+      "marks": 10,
+      "steps": [
+        { "action": "read",  "selector": "#counter", "saveAs": "before" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "read",  "selector": "#counter", "saveAs": "after" }
+      ],
+      "assert": { "type": "incrementedBy", "from": "before", "to": "after", "by": 1 },
+      "failHint": "#counter should increase by 1 after clicking #increment."
+    },
+    {
+      "id": "fn-2",
+      "name": "Reset button sets counter back to 0",
+      "marks": 10,
+      "steps": [
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#reset" }
+      ],
+      "assert": { "type": "textEquals", "selector": "#counter", "value": "0" },
+      "failHint": "Clicking #reset should set #counter text to '0'."
+    },
+    {
+      "id": "fn-3",
+      "name": "Counter starts at 0",
+      "marks": 10,
+      "steps": [],
+      "assert": { "type": "textEquals", "selector": "#counter", "value": "0" },
+      "failHint": "#counter should display '0' on page load."
+    },
+    {
+      "id": "fn-4",
+      "name": "Counter value is within 0–100 after 5 clicks",
+      "marks": 10,
+      "steps": [
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#increment" },
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assert": { "type": "valueInRange", "selector": "#counter", "min": 1, "max": 100 },
+      "failHint": "#counter after 5 clicks should be a number between 1 and 100."
+    }
+  ],
+  "interactionTests": []
+}
+
+═══════════════════════════════
+TEST 3-A: STUDENT — Correct implementation (expect 40/40 functionality)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <h1 id="counter">0</h1>
+  <button id="increment">Add</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; text-align: center; padding: 40px; }
+
+JS:
+const el = document.getElementById('counter');
+const addBtn = document.getElementById('increment');
+const resetBtn = document.getElementById('reset');
+let count = 0;
+
+addBtn.addEventListener('click', () => {
+  count += 1;
+  el.textContent = String(count);
+});
+
+resetBtn.addEventListener('click', () => {
+  count = 0;
+  el.textContent = '0';
+});
+
+EXPECTED OUTCOME:
+  fn-1 → PASS (10/10)  counter increments by 1
+  fn-2 → PASS (10/10)  counter resets to "0"
+  fn-3 → PASS (10/10)  counter starts at "0"
+  fn-4 → PASS (10/10)  counter = 5 after 5 clicks, within [1,100]
+  functionality → 40/40
+
+═══════════════════════════════
+TEST 3-B: STUDENT — Broken reset only (expect 30/40 functionality)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <h1 id="counter">0</h1>
+  <button id="increment">Add</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; text-align: center; padding: 40px; }
+
+JS:
+const el = document.getElementById('counter');
+const addBtn = document.getElementById('increment');
+const resetBtn = document.getElementById('reset');
+let count = 0;
+
+addBtn.addEventListener('click', () => {
+  count += 1;
+  el.textContent = String(count);
+});
+
+// BUG: reset does not reset to 0, it just decrements
+resetBtn.addEventListener('click', () => {
+  count -= 1;
+  el.textContent = String(count);
+});
+
+EXPECTED OUTCOME:
+  fn-1 → PASS (10/10)
+  fn-2 → FAIL ( 0/10)  counter after reset = "-1", not "0"
+  fn-3 → PASS (10/10)
+  fn-4 → PASS (10/10)
+  rawEarned = 30, rawMax = 40
+  functionality → (30/40) × 40 = 30/40
+
+═══════════════════════════════
+TEST 3-C: STUDENT — Completely non-functional (expect 0/40 functionality)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <h1 id="counter">0</h1>
+  <button id="increment">Add</button>
+  <button id="reset">Reset</button>
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; }
+
+JS:
+// No logic at all
+console.log("hello");
+
+EXPECTED OUTCOME:
+  fn-1 → FAIL (counter stays at 0, incrementedBy 1 fails)
+  fn-2 → FAIL (counter stays at 0 after "reset" — technically textEquals "0"
+               is true but only because reset was never triggered; however,
+               the fn-2 steps click #increment twice first, so counter = 0
+               all along — fn-2 actually PASSES by coincidence here)
+  fn-3 → PASS (starts at 0 → textEquals "0" is true)
+  fn-4 → FAIL (counter stays at 0 after 5 clicks → valueInRange passes
+               only if 0 is accepted; 0 < min=1, so FAILS)
+
+  Actual outcome:
+    fn-1 FAIL, fn-2 PASS (coincidence), fn-3 PASS, fn-4 FAIL
+    rawEarned = 20, rawMax = 40
+    functionality → (20/40) × 40 = 20/40
+
+  NOTE: fn-2 passing by coincidence is correct behavior for the engine —
+  the assertion checks the final DOM state, not the cause.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST 4 — INTERACTION BUCKET (max 15 marks)
+═══════════════════════════════════════════════════════════════════════════════
+Tests click/type/keypress simulations with DOM-state assertions.
+
+── TEACHER: evalSpec JSON ────────────────────────────────────────────────────
+
+{
+  "functionalityTests": [],
+  "interactionTests": [
+    {
+      "name": "Clicking Add increments counter",
+      "weight": 5,
+      "steps": [
+        { "action": "click", "selector": "#increment" }
+      ],
+      "assertions": [
+        { "type": "textContains", "selector": "#counter", "value": "1" }
+      ]
+    },
+    {
+      "name": "Alert fires on empty submit",
+      "weight": 5,
+      "steps": [
+        { "action": "click", "selector": "#emptySubmit" }
+      ],
+      "assertions": [
+        { "type": "alertCalled" }
+      ]
+    },
+    {
+      "name": "Typing in input changes its value",
+      "weight": 5,
+      "steps": [
+        { "action": "type", "selector": "#nameInput", "value": "Alice" }
+      ],
+      "assertions": [
+        { "type": "elementExists", "selector": "#nameInput" }
+      ]
+    }
+  ]
+}
+
+(Note: interaction tests use the interactionTests runner, which has slightly
+ different assertion types than functionalityTests — alertCalled here uses
+ window._alertCalled, not the multi-dialog window._dialogs array.)
+
+── TEACHER: Reference HTML (for the above tests) ────────────────────────────
+
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="emptySubmit">Submit Empty</button>
+  <input id="nameInput" type="text" placeholder="Your name" />
+</body>
+</html>
+
+── TEACHER: Reference JS ─────────────────────────────────────────────────────
+
+const counter = document.getElementById('counter');
+let n = 0;
+document.getElementById('increment').addEventListener('click', () => {
+  counter.textContent = String(++n);
+});
+document.getElementById('emptySubmit').addEventListener('click', () => {
+  alert('Please enter a value');
+});
+
+═══════════════════════════════
+TEST 4-A: STUDENT — All interactions working (expect 15/15 interaction)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="emptySubmit">Submit Empty</button>
+  <input id="nameInput" type="text" placeholder="Your name" />
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; padding: 24px; }
+
+JS:
+const counter = document.getElementById('counter');
+let n = 0;
+document.getElementById('increment').addEventListener('click', () => {
+  counter.textContent = String(++n);
+});
+document.getElementById('emptySubmit').addEventListener('click', () => {
+  alert('Please enter a value');
+});
+
+EXPECTED OUTCOME:
+  "Clicking Add increments counter" → PASS  (counter shows "1")
+  "Alert fires on empty submit"     → PASS  (window._alertCalled = true)
+  "Typing in input changes its value" → PASS (#nameInput exists)
+  earnedWeight = 15, totalWeight = 15
+  interaction → 15/15
+
+═══════════════════════════════
+TEST 4-B: STUDENT — Alert missing (expect 10/15 interaction)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <p id="counter">0</p>
+  <button id="increment">Add</button>
+  <button id="emptySubmit">Submit Empty</button>
+  <input id="nameInput" type="text" placeholder="Your name" />
+</body>
+</html>
+
+CSS:
+body { font-family: sans-serif; padding: 24px; }
+
+JS:
+const counter = document.getElementById('counter');
+let n = 0;
+document.getElementById('increment').addEventListener('click', () => {
+  counter.textContent = String(++n);
+});
+// BUG: emptySubmit does nothing
+document.getElementById('emptySubmit').addEventListener('click', () => {
+  // forgot to call alert
+});
+
+EXPECTED OUTCOME:
+  "Clicking Add increments counter"   → PASS  (weight 5)
+  "Alert fires on empty submit"       → FAIL  (weight 5, _alertCalled stays false)
+  "Typing in input changes its value" → PASS  (weight 5)
+  earnedWeight = 10, totalWeight = 15
+  ratio = 10/15
+  interaction → (10/15) × 15 = 10/15
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TEST 5 — VISUAL BUCKET (max 20 marks)
+═══════════════════════════════════════════════════════════════════════════════
+Screenshot comparison: student page vs teacher baseline at 1280×720.
+The visual score is based on pixel-level diff (70% layout + 30% color).
+
+NOTE: The teacher baseline screenshot is captured automatically when the
+assignment is created. There is no JSON to configure for this bucket — the
+visual comparison happens automatically as long as the assignment has a
+referenceScreenshotUrl or referencePageScreenshots entry.
+
+── TEACHER: Reference HTML (visually distinctive layout) ─────────────────────
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Styled Counter</title>
+</head>
+<body>
+  <div class="card">
+    <h1 class="title">Counter</h1>
+    <p id="counter">0</p>
+    <div class="controls">
+      <button id="increment">+ Add</button>
+      <button id="reset" class="secondary">Reset</button>
+    </div>
+  </div>
+</body>
+</html>
+
+── TEACHER: Reference CSS ────────────────────────────────────────────────────
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #1e1e2e;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', sans-serif;
+}
+.card {
+  background: #2a2a3e;
+  border-radius: 16px;
+  padding: 48px 64px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.title { color: #c9d1d9; font-size: 20px; letter-spacing: 2px; margin-bottom: 16px; }
+#counter { color: #58a6ff; font-size: 80px; font-weight: 700; margin-bottom: 32px; }
+.controls { display: flex; gap: 16px; justify-content: center; }
+button {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  background: #58a6ff;
+  color: #0d1117;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.secondary { background: #3a3a52; color: #c9d1d9; }
+
+── TEACHER: Reference JS ─────────────────────────────────────────────────────
+
+const el = document.getElementById('counter');
+const addBtn = document.getElementById('increment');
+const resetBtn = document.getElementById('reset');
+let n = 0;
+addBtn.addEventListener('click', () => { el.textContent = String(++n); });
+resetBtn.addEventListener('click', () => { n = 0; el.textContent = '0'; });
+
+── TEACHER: evalSpec JSON ────────────────────────────────────────────────────
+
+{
+  "functionalityTests": [],
+  "interactionTests": []
+}
+
+(Visual comparison is automatic — no JSON tests needed.)
+
+═══════════════════════════════
+TEST 5-A: STUDENT — Pixel-perfect match (expect ~18–20/20 visual)
+═══════════════════════════════
+
+Submit EXACTLY the same HTML/CSS/JS as the teacher reference above.
+
+EXPECTED OUTCOME:
+  diffPercent → very small (< 2%)   due to identical rendering
+  diffScore   → ~98–100
+  visual      → ~19.6–20/20
+
+  (Minor differences in font rendering, subpixel antialiasing can cause
+   a small non-zero diff even for identical code.)
+
+═══════════════════════════════
+TEST 5-B: STUDENT — Same structure, wrong colors (expect ~12–16/20 visual)
+═══════════════════════════════
+
+HTML: (same as teacher reference above)
+
+CSS:
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  /* DIFFERENT: light background instead of dark */
+  background: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', sans-serif;
+}
+.card {
+  background: #f0f4f8;
+  border-radius: 16px;
+  padding: 48px 64px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+.title { color: #333; font-size: 20px; letter-spacing: 2px; margin-bottom: 16px; }
+#counter { color: #e53e3e; font-size: 80px; font-weight: 700; margin-bottom: 32px; }
+.controls { display: flex; gap: 16px; justify-content: center; }
+button {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  background: #e53e3e;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.secondary { background: #e2e8f0; color: #333; }
+
+JS: (same as teacher reference above)
+
+EXPECTED OUTCOME:
+  Layout is identical (same structure, same sizes) → layoutDiffPct near 0
+  Colors are very different → colorDiffPct high (~30–50%)
+  diffPercent = 0.7×(low) + 0.3×(high) → moderate
+  diffScore   → ~70–80
+  visual      → ~14–16/20
+
+═══════════════════════════════
+TEST 5-C: STUDENT — Completely different layout (expect ~0–6/20 visual)
+═══════════════════════════════
+
+HTML:
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Counter</title></head>
+<body>
+  <h1>Count: <span id="counter">0</span></h1>
+  <button id="increment">+</button>
+  <button id="reset">R</button>
+</body>
+</html>
+
+CSS:
+body { background: orange; color: black; font-size: 32px; padding: 20px; }
+button { font-size: 32px; margin: 8px; }
+
+JS:
+const el = document.getElementById('counter');
+let n = 0;
+document.getElementById('increment').onclick = () => el.textContent = ++n;
+document.getElementById('reset').onclick = () => { n=0; el.textContent=0; };
+
+EXPECTED OUTCOME:
+  Structure, layout, colors all differ radically from the dark card design.
+  diffPercent → very high (~70–90%)
+  diffScore   → ~10–30
+  visual      → ~2–6/20
+
+
+═══════════════════════════════════════════════════════════════════════════════
+COMBINED VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+After running all test cases, verify these outcomes in the result breakdown:
+
+  BUCKET 1 — LINTER
+  [ ] Test 1-A: htmlhint=3, stylelint=3, eslint=4, total=10
+  [ ] Test 1-B: htmlhint=0, stylelint=0, eslint=0, total=0
+
+  BUCKET 2 — PERFORMANCE
+  [ ] Test 2-A: performance ≥ 13/15 (lean page)
+  [ ] Test 2-B: performance ≤ 9/15  (bloated DOM + unused CSS)
+
+  BUCKET 3 — FUNCTIONALITY
+  [ ] Test 3-A: 4/4 tests pass, score = 40/40
+  [ ] Test 3-B: fn-2 fails only, score = 30/40
+  [ ] Test 3-C: fn-1 and fn-4 fail, score = 20/40
+
+  BUCKET 4 — INTERACTION
+  [ ] Test 4-A: all 3 pass, score = 15/15
+  [ ] Test 4-B: alert test fails, score = 10/15
+
+  BUCKET 5 — VISUAL
+  [ ] Test 5-A: visual ≥ 18/20
+  [ ] Test 5-B: visual in range 12–16/20
+  [ ] Test 5-C: visual ≤ 6/20
+
+  REDIS / SOCKET.IO
+  [ ] Evaluation completes and "evaluation:complete" event fires in frontend
+  [ ] GET /api/result/:id returns 202 while pending, then full payload when done
+
+  STUDENT PROGRESS
+  [ ] StudentProgress.attempts increments on each submission
+  [ ] bestScore only updates if new score is higher
+  [ ] completed = true only when totalScore ≥ 50

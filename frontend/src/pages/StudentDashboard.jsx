@@ -391,10 +391,13 @@ export default function StudentDashboard() {
   const [targetStopped, setTargetStopped]       = useState(false);
   const [editorWidth, setEditorWidth]           = useState(null);
   const [descWidth, setDescWidth]               = useState(null);
+  const [resultsWidth, setResultsWidth]         = useState(420);
   const codeAreaRef                             = useRef(null);
   const mainAreaRef                             = useRef(null);
+  const resultsAreaRef                          = useRef(null);
   const isDragging                              = useRef(false);
   const isDescDragging                          = useRef(false);
+  const isResultsDragging                       = useRef(false);
   const [availableLibraries, setAvailableLibraries] = useState([]);
   const [selectedLibraryIds, setSelectedLibraryIds] = useState([]);
   const [targetHtml, setTargetHtml]             = useState('');
@@ -419,6 +422,7 @@ export default function StudentDashboard() {
   const startSidebarResize = useCallback((e) => {
     e.preventDefault();
     isSidebarDragging.current = true;
+    document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = 'none'; });
     const onMove = (ev) => {
       if (!isSidebarDragging.current) return;
       const newWidth = ev.clientX;
@@ -428,6 +432,7 @@ export default function StudentDashboard() {
     };
     const onUp = () => {
       isSidebarDragging.current = false;
+      document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = ''; });
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
@@ -442,6 +447,7 @@ export default function StudentDashboard() {
   const startResize = useCallback((e) => {
     e.preventDefault();
     isDragging.current = true;
+    document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = 'none'; });
     const onMove = (ev) => {
       if (!isDragging.current || !codeAreaRef.current) return;
       const rect = codeAreaRef.current.getBoundingClientRect();
@@ -452,6 +458,7 @@ export default function StudentDashboard() {
     };
     const onUp = () => {
       isDragging.current = false;
+      document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = ''; });
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
@@ -463,9 +470,36 @@ export default function StudentDashboard() {
     document.addEventListener('mouseup', onUp);
   }, []);
 
+  const startResultsResize = useCallback((e) => {
+    e.preventDefault();
+    isResultsDragging.current = true;
+    document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = 'none'; });
+    const startX = e.clientX;
+    const startWidth = resultsAreaRef.current?.offsetWidth ?? resultsWidth;
+    const onMove = (ev) => {
+      if (!isResultsDragging.current) return;
+      const delta = startX - ev.clientX;
+      const newWidth = startWidth + delta;
+      setResultsWidth(Math.min(Math.max(newWidth, 280), window.innerWidth - 400));
+    };
+    const onUp = () => {
+      isResultsDragging.current = false;
+      document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = ''; });
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [resultsWidth]);
+
   const startDescResize = useCallback((e) => {
     e.preventDefault();
     isDescDragging.current = true;
+    document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = 'none'; });
     const onMove = (ev) => {
       if (!isDescDragging.current || !mainAreaRef.current) return;
       const rect = mainAreaRef.current.getBoundingClientRect();
@@ -474,6 +508,7 @@ export default function StudentDashboard() {
     };
     const onUp = () => {
       isDescDragging.current = false;
+      document.querySelectorAll('iframe').forEach(f => { f.style.pointerEvents = ''; });
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
@@ -1480,9 +1515,15 @@ export default function StudentDashboard() {
                   {/* Results slide-in panel */}
                   {showResults && status === 'done' && result && (
                     <aside
-                      className="w-full max-h-[52vh] xl:max-h-none xl:w-[420px] 2xl:w-[460px] shrink-0 border-l border-[var(--border-color)] bg-[var(--bg-surface)] flex flex-col overflow-hidden"
-                      style={{ animation: 'slideInRight 0.25s ease-out' }}
+                      ref={resultsAreaRef}
+                      className="relative shrink-0 border-l border-[var(--border-color)] bg-[var(--bg-surface)] flex flex-col overflow-hidden"
+                      style={{ width: resultsWidth, minWidth: 280, animation: 'slideInRight 0.25s ease-out' }}
                     >
+                      {/* Drag handle */}
+                      <div
+                        onMouseDown={startResultsResize}
+                        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#4e9af1]/40 transition-colors z-10"
+                      />
                       <div className="flex items-center justify-between gap-3 px-5 py-3 bg-[var(--bg-surface-alt)] border-b border-[var(--border-color)] shrink-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#4e9af1] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>

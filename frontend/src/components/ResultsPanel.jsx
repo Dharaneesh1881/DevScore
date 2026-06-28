@@ -216,18 +216,18 @@ const SUGGESTIONS = {
     icon: CATEGORY_ICONS.performance,
     tips: {
       low: [
-        'Lighthouse score is low — reduce render-blocking resources.',
+        'Performance score is low — reduce render-blocking resources and trim unused code.',
         'Keep your JavaScript small — avoid large loops or synchronous heavy operations on page load.',
         'Minimize total DOM nodes — deeply nested HTML causes slow rendering.',
         'Avoid inline event handlers inside loops — attach them once after the DOM is ready.',
         'Defer or async non-critical scripts: `<script defer src="..."></script>`.',
       ],
       mid: [
-        'Performance is decent but can improve — check Total Blocking Time (TBT).',
+        'Performance is decent but can improve — check Task Duration and reduce main-thread work.',
         'Reduce unnecessary DOM manipulation and batch your updates.',
         'Avoid repeated `querySelector` calls inside loops — cache the reference once.',
       ],
-      good: ['Performance is excellent! Your page loads fast and has a high Lighthouse score.']
+      good: ['Performance is excellent! Your page loads fast with low task duration and minimal DOM nodes.']
     }
   }
 };
@@ -423,12 +423,13 @@ function TestRow({ t }) {
 function PerformanceDetail({ b }) {
   const m = b.metrics ?? {};
   const items = [
-    { label: 'Lighthouse Score', value: b.performanceScore != null ? `${b.performanceScore}/100` : 'N/A' },
-    { label: 'First Contentful Paint', value: m.fcp ?? '—' },
-    { label: 'Speed Index', value: m.si ?? '—' },
-    { label: 'Total Blocking Time', value: m.tbt ?? '—' },
-    ...(m.sizeKb != null ? [{ label: 'File Size', value: `${m.sizeKb} KB` }] : []),
-    ...(m.domCount != null ? [{ label: 'DOM Nodes', value: String(m.domCount) }] : []),
+    { label: 'Performance Score', value: b.performanceScore != null ? `${b.performanceScore}/100` : 'N/A' },
+    ...(m.unusedPct     != null ? [{ label: 'Unused Code',    value: `${m.unusedPct}%` }] : []),
+    ...(m.taskDurationMs != null ? [{ label: 'Task Duration',  value: `${m.taskDurationMs} ms` }] : []),
+    ...(m.heapMb        != null ? [{ label: 'JS Heap Used',   value: `${m.heapMb} MB` }] : []),
+    ...(m.domNodes      != null ? [{ label: 'DOM Nodes',      value: String(m.domNodes) }] : []),
+    ...(m.sizeKb        != null ? [{ label: 'File Size',      value: `${m.sizeKb} KB` }] : []),
+    ...(m.domCount      != null ? [{ label: 'DOM Nodes',      value: String(m.domCount) }] : []),
   ];
 
   return (
@@ -442,7 +443,7 @@ function PerformanceDetail({ b }) {
         ))}
         {b.source === 'heuristic' && (
           <p className="px-3 py-2 text-[10px] text-[#f0a500]">
-            * Lighthouse could not run — score estimated from code size
+            * Page load failed — score estimated from code size
           </p>
         )}
       </div>
@@ -478,7 +479,7 @@ export function ResultsPanel({ status, result }) {
   const totalColor = scoreColor(totalScore);
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
 
       {/* ── Total score card ── */}
       <div className="p-4 rounded-xl bg-[var(--bg-surface-alt)] border border-[var(--border-color)]">
