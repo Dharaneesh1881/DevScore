@@ -102,9 +102,10 @@ router.post('/uploads', requireAuth, async (req, res) => {
       const isVideo = (req.file.mimetype || '').startsWith('video/');
       fileType = isVideo ? 'video' : 'image';
 
+      const industryPrefix = req.user.industrySlug ? `industries/${req.user.industrySlug}/` : '';
       uploadResult = await uploadBufferToCloudinary(req.file.buffer, {
         resourceType: 'auto',
-        folder: isVideo ? 'videos' : 'images',
+        folder: isVideo ? `${industryPrefix}uploads/videos` : `${industryPrefix}uploads/images`,
         transformation: isVideo ? undefined : [
           { width: 500, crop: 'scale' },
           { quality: 'auto:best' },

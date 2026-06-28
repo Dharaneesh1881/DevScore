@@ -14,10 +14,7 @@
  */
 
 import puppeteer from 'puppeteer';
-import Submission from '../models/Submission.js';
-import EvaluationRun from '../models/EvaluationRun.js';
-import Assignment from '../models/Assignment.js';
-import StudentProgress from '../models/StudentProgress.js';
+import { getTenantConnection, getTenantModels } from '../db/connections.js';
 import { buildPage, cleanupPage } from './pageBuilder.js';
 import { runLinters } from './linterRunner.js';
 import { runFunctionalityTests } from './functionalityTests.js';
@@ -28,7 +25,6 @@ import { runPerformanceMetrics } from './lighthouseRunner.js';
 import { resolveAllowedDomains } from './networkPolicy.js';
 import { calculateScore } from './scoreCalculator.js';
 import { getMainFile, mergeFilesByType, normalizeStoredFiles } from '../utils/projectFiles.js';
-import LibraryPolicy from '../models/LibraryPolicy.js';
 import { uploadRawText } from '../utils/cloudinary.js';
 
 import { createRedisClient } from '../utils/redis.js';
@@ -54,7 +50,10 @@ function resolveReferencePages(assignment) {
   return [];
 }
 
-export async function runEvaluation(submissionId, assignmentId) {
+export async function runEvaluation(submissionId, assignmentId, industrySlug) {
+  const conn = await getTenantConnection(industrySlug);
+  const { Submission, Assignment, EvaluationRun, StudentProgress, LibraryPolicy } = getTenantModels(conn);
+
   const [submission, assignment] = await Promise.all([
     Submission.findOne({ submissionId }),
     Assignment.findById(assignmentId)
@@ -161,6 +160,7 @@ export async function runEvaluation(submissionId, assignmentId) {
             pageFilePaths,
             submissionId,
             assignmentId,
+            industrySlug,
             referencePages: resolveReferencePages(assignment),
             allowedDomains,
             allowedUrlPrefixes
@@ -183,9 +183,12 @@ export async function runEvaluation(submissionId, assignmentId) {
           await snapPage.goto(fileUrl, { waitUntil: 'networkidle0', timeout: spec.timeoutMs ?? 30000 });
           const domHtml = await snapPage.content();
           await snapPage.close();
+          const snapshotFolder = industrySlug
+            ? `industries/${industrySlug}/submissions/${submissionId}`
+            : `submissions/${assignmentId}`;
           domSnapshotUrl = await uploadRawText(
             domHtml,
-            `submissions/${assignmentId}`,
+            snapshotFolder,
             `dom_${submissionId}`
           );
         } catch (err) {
@@ -244,12 +247,14 @@ export async function runEvaluation(submissionId, assignmentId) {
     $set: {
       updatedAt: now,
       lastSubmissionId: submissionId,
-      lastScore: newScore
+      lastScore: newScore,
+      industryId: submission.industryId
     }
   };
 
   if (isBetter) {
     progressUpdate.$set.bestScore = newScore;
+    progressUpdate.$set.bestSubmissionId = submissionId;
     if (newScore >= 50 && !existing?.completed) {
       progressUpdate.$set.completed = true;
       progressUpdate.$set.completedAt = now;

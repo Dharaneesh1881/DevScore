@@ -36,8 +36,22 @@ async function handleResponse(res) {
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 
-export async function login(email, password) {
+export async function getIndustries() {
+  const res = await fetch(`${API_BASE}/auth/industries`);
+  return handleResponse(res);  // [{ _id, name, slug }]
+}
+
+export async function login(email, password, industrySlug) {
   const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, industrySlug })
+  });
+  return handleResponse(res);  // { token, user }
+}
+
+export async function platformAdminLogin(email, password) {
+  const res = await fetch(`${API_BASE}/auth/platform-admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
@@ -45,11 +59,20 @@ export async function login(email, password) {
   return handleResponse(res);  // { token, user }
 }
 
-export async function register(name, email, password, role) {
+export async function industryAdminLogin(email, password) {
+  const res = await fetch(`${API_BASE}/auth/industry-admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  return handleResponse(res);  // { token, user }
+}
+
+export async function register(name, email, password, role, industrySlug) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password, role })
+    body: JSON.stringify({ name, email, password, role, industrySlug })
   });
   return handleResponse(res);  // { token, user }
 }
@@ -58,7 +81,7 @@ export async function getCurrentUser(token) {
   const res = await fetch(`${API_BASE}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  return handleResponse(res);  // { id, name, email, role }
+  return handleResponse(res);  // { id, name, email, role, industrySlug }
 }
 
 // ── Assignments ─────────────────────────────────────────────────────────────
@@ -241,5 +264,160 @@ export async function parseProjectZip(zipFile) {
     body
   });
 
+  return handleResponse(res);
+}
+
+// ── Teacher: Students ─────────────────────────────────────────────────────────
+
+export async function getTeacherStudents() {
+  const res = await fetch(`${API_BASE}/teacher/students`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+export async function createTeacherStudent({ name, email, password }) {
+  const res = await fetch(`${API_BASE}/teacher/students`, {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ name, email, password })
+  });
+  return handleResponse(res);
+}
+
+export async function deleteTeacherStudent(id) {
+  const res = await fetch(`${API_BASE}/teacher/students/${id}`, {
+    method: 'DELETE', headers: authHeaders()
+  });
+  return handleResponse(res);
+}
+
+// ── Teacher: Groups ───────────────────────────────────────────────────────────
+
+export async function getGroups() {
+  const res = await fetch(`${API_BASE}/groups`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+export async function createGroup({ name, studentIds }) {
+  const res = await fetch(`${API_BASE}/groups`, {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ name, studentIds })
+  });
+  return handleResponse(res);
+}
+
+export async function updateGroup(id, data) {
+  const res = await fetch(`${API_BASE}/groups/${id}`, {
+    method: 'PATCH', headers: authHeaders(),
+    body: JSON.stringify(data)
+  });
+  return handleResponse(res);
+}
+
+export async function deleteGroup(id) {
+  const res = await fetch(`${API_BASE}/groups/${id}`, {
+    method: 'DELETE', headers: authHeaders()
+  });
+  return handleResponse(res);
+}
+
+// ── Industry Admin ────────────────────────────────────────────────────────────
+
+export async function getIndustryAdminStats() {
+  const res = await fetch(`${API_BASE}/industry-admin/stats`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+export async function getIndustryAdminTeachers() {
+  const res = await fetch(`${API_BASE}/industry-admin/teachers`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+export async function createIndustryAdminTeacher({ name, email, password }) {
+  const res = await fetch(`${API_BASE}/industry-admin/teachers`, {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ name, email, password })
+  });
+  return handleResponse(res);
+}
+
+export async function updateIndustryAdminTeacher(id, data) {
+  const res = await fetch(`${API_BASE}/industry-admin/teachers/${id}`, {
+    method: 'PATCH', headers: authHeaders(),
+    body: JSON.stringify(data)
+  });
+  return handleResponse(res);
+}
+
+export async function deleteIndustryAdminTeacher(id) {
+  const res = await fetch(`${API_BASE}/industry-admin/teachers/${id}`, {
+    method: 'DELETE', headers: authHeaders()
+  });
+  return handleResponse(res);
+}
+
+export async function getIndustryAdminStudents() {
+  const res = await fetch(`${API_BASE}/industry-admin/students`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+// ── Platform Admin ────────────────────────────────────────────────────────────
+
+function platformAdminHeaders() {
+  const token = localStorage.getItem('adminToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
+
+export async function getPlatformAdminStats() {
+  const res = await fetch(`${API_BASE}/platform-admin/stats`, { headers: platformAdminHeaders() });
+  return handleResponse(res);
+}
+
+export async function getPlatformAdminIndustries() {
+  const res = await fetch(`${API_BASE}/platform-admin/industries`, { headers: platformAdminHeaders() });
+  return handleResponse(res);
+}
+
+export async function createPlatformAdminIndustry({ name, slug }) {
+  const res = await fetch(`${API_BASE}/platform-admin/industries`, {
+    method: 'POST', headers: platformAdminHeaders(),
+    body: JSON.stringify({ name, slug })
+  });
+  return handleResponse(res);
+}
+
+export async function updatePlatformAdminIndustry(id, data) {
+  const res = await fetch(`${API_BASE}/platform-admin/industries/${id}`, {
+    method: 'PATCH', headers: platformAdminHeaders(),
+    body: JSON.stringify(data)
+  });
+  return handleResponse(res);
+}
+
+export async function deletePlatformAdminIndustry(id) {
+  const res = await fetch(`${API_BASE}/platform-admin/industries/${id}`, {
+    method: 'DELETE', headers: platformAdminHeaders()
+  });
+  return handleResponse(res);
+}
+
+export async function getPlatformAdminIndustryAdmins() {
+  const res = await fetch(`${API_BASE}/platform-admin/industry-admins`, { headers: platformAdminHeaders() });
+  return handleResponse(res);
+}
+
+export async function createPlatformAdminIndustryAdmin({ name, email, password, industryId }) {
+  const res = await fetch(`${API_BASE}/platform-admin/industry-admins`, {
+    method: 'POST', headers: platformAdminHeaders(),
+    body: JSON.stringify({ name, email, password, industryId })
+  });
+  return handleResponse(res);
+}
+
+export async function deletePlatformAdminIndustryAdmin(id) {
+  const res = await fetch(`${API_BASE}/platform-admin/industry-admins/${id}`, {
+    method: 'DELETE', headers: platformAdminHeaders()
+  });
   return handleResponse(res);
 }

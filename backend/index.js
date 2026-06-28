@@ -3,44 +3,47 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
-import mongoose from 'mongoose';
+
+// Master DB — must be imported before any master models are used
+import './db/masterDb.js';
+
 import { createRedisClient } from './utils/redis.js';
 import submissionsRouter from './routes/submissions.js';
 import authRouter from './routes/auth.js';
 import assignmentsRouter from './routes/assignments.js';
 import uploadsRouter from './routes/uploads.js';
-import adminRouter from './routes/admin.js';
 import progressRouter from './routes/progress.js';
+import platformAdminRouter from './routes/platform-admin.js';
+import industryAdminRouter from './routes/industry-admin.js';
+import groupsRouter from './routes/groups.js';
 
 const app = express();
 const httpServer = createServer(app);
 
-// Allow comma-separated origins (e.g. "https://app.vercel.app,http://localhost:5173")
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
 
 const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST']
-  }
+  cors: { origin: allowedOrigins, methods: ['GET', 'POST'] }
 });
 
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '2mb' }));
-
 app.set('io', io);
 
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api', submissionsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api', uploadsRouter);
 app.use('/api', progressRouter);
-app.use('/api', adminRouter);
+app.use('/api', platformAdminRouter);
+app.use('/api', industryAdminRouter);
+app.use('/api', groupsRouter);
 
-// Subscribe to Redis pub/sub to receive worker notifications
+// ── Redis pub/sub → Socket.IO ─────────────────────────────────────────────────
 const redisSub = createRedisClient();
 
 redisSub.subscribe('eval:done', (err) => {
@@ -59,11 +62,6 @@ redisSub.on('message', (channel, message) => {
     }
   }
 });
-
-// MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/web_eval');
-mongoose.connection.on('connected', () => console.log('MongoDB connected'));
-mongoose.connection.on('error', (err) => console.error('MongoDB error:', err));
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

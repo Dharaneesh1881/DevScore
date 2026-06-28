@@ -6,7 +6,7 @@ import { LiveRunner } from '../components/LiveRunner.jsx';
 import { MultiFileUpload } from '../components/MultiFileUpload.jsx';
 import { ResultsPanel } from '../components/ResultsPanel.jsx';
 import { AnalyticsView } from '../components/AnalyticsView.jsx';
-import { getAssignments, createAssignment, getAssignmentSubmissions, updateAssignmentTests, deleteAssignment, getLeaderboard, getTeacherStudentSubmission, getTeacherLibraryPolicies, createTeacherLibraryPolicy, updateTeacherLibraryPolicy, deleteTeacherLibraryPolicy, getTeacherProgress, deleteTeacherProgress, getTeacherAllSubmissions, toggleAssignment, setAssignmentLibraryPolicies, regenerateAssignmentBaseline } from '../api/index.js';
+import { getAssignments, createAssignment, getAssignmentSubmissions, updateAssignmentTests, deleteAssignment, getLeaderboard, getTeacherStudentSubmission, getTeacherLibraryPolicies, createTeacherLibraryPolicy, updateTeacherLibraryPolicy, deleteTeacherLibraryPolicy, getTeacherProgress, deleteTeacherProgress, getTeacherAllSubmissions, toggleAssignment, setAssignmentLibraryPolicies, regenerateAssignmentBaseline, getTeacherStudents, createTeacherStudent, deleteTeacherStudent, getGroups, createGroup, updateGroup, deleteGroup } from '../api/index.js';
 import { FiAward, FiRefreshCw, FiBookOpen, FiPlus, FiLogOut, FiChevronRight, FiBarChart2, FiList, FiPieChart, FiSun, FiMoon, FiPackage, FiActivity, FiFileText, FiTrash2, FiSearch, FiToggleLeft, FiToggleRight, FiEdit2, FiLink, FiX, FiUsers, FiCheckCircle, FiClock, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { MdCheckCircle } from 'react-icons/md';
 import {
@@ -693,6 +693,214 @@ function AssignmentLibraryManager({ assignment, allPolicies, onClose, onSave }) 
   );
 }
 
+// ── Teacher: Students View ────────────────────────────────────────────────────
+
+function TeacherStudentsView() {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm]         = useState({ name: '', email: '', password: '' });
+  const [error, setError]       = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  const load = () => getTeacherStudents().then(setStudents).catch(console.error).finally(() => setLoading(false));
+  useEffect(() => { load(); }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try { await createTeacherStudent(form); setShowForm(false); load(); }
+    catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Delete this student and all their submissions?')) return;
+    try { await deleteTeacherStudent(id); load(); } catch (e) { alert(e.message); }
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-9 h-9 rounded-full border-[3px] border-[var(--border-color)] border-t-[#4e9af1] animate-spin" /></div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xl font-bold text-[var(--text-strong)]">Students ({students.length})</h2>
+        <button onClick={() => { setForm({ name: '', email: '', password: '' }); setError(''); setShowForm(true); }}
+          className="px-4 py-2 bg-[#2f80ed] text-white text-sm font-semibold rounded-lg hover:bg-[#1a6cda] transition-colors">
+          + Add Student
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-[var(--border-color)]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--border-color)] bg-[var(--bg-surface)]">
+              {['Name', 'Email', 'Joined', ''].map(h => (
+                <th key={h} className="text-left px-4 py-3 text-xs text-[var(--text-faint)] font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {students.map(s => (
+              <tr key={s._id} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-surface)] transition-colors">
+                <td className="px-4 py-3 font-medium text-[var(--text-strong)]">{s.name}</td>
+                <td className="px-4 py-3 text-[var(--text-muted)]">{s.email}</td>
+                <td className="px-4 py-3 text-[var(--text-faint)] text-xs">{new Date(s.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => handleDelete(s._id)} className="text-xs text-[#f85149] hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {students.length === 0 && (
+              <tr><td colSpan={4} className="px-4 py-10 text-center text-[var(--text-faint)] text-sm">No students yet. Add one to get started.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-[var(--bg-surface-alt)] border border-[var(--border-color)] rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="text-base font-semibold text-[var(--text-strong)] mb-4">Add Student</h3>
+            <form onSubmit={handleCreate} className="space-y-3">
+              {[['Name', 'name', 'text'], ['Email', 'email', 'email'], ['Password', 'password', 'password']].map(([label, key, type]) => (
+                <div key={key}>
+                  <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">{label}</label>
+                  <input type={type} required value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-strong)] focus:outline-none focus:border-[#4e9af1]" />
+                </div>
+              ))}
+              {error && <p className="text-xs text-[#f85149]">{error}</p>}
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-muted)]">Cancel</button>
+                <button type="submit" disabled={saving} className="flex-1 py-2 bg-[#2f80ed] text-white text-sm font-semibold rounded-lg hover:bg-[#1a6cda] disabled:opacity-50">{saving ? 'Saving…' : 'Add'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Teacher: Groups View ──────────────────────────────────────────────────────
+
+function TeacherGroupsView() {
+  const [groups,   setGroups]   = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editGroup, setEditGroup] = useState(null);
+  const [form, setForm]         = useState({ name: '', studentIds: [] });
+  const [error, setError]       = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try { const [g, s] = await Promise.all([getGroups(), getTeacherStudents()]); setGroups(g); setStudents(s); }
+    catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  function openCreate() { setForm({ name: '', studentIds: [] }); setError(''); setEditGroup(null); setShowForm(true); }
+  function openEdit(g)  { setForm({ name: g.name, studentIds: [...g.studentIds] }); setError(''); setEditGroup(g); setShowForm(true); }
+
+  async function handleSave(e) {
+    e.preventDefault(); setSaving(true); setError('');
+    try {
+      if (editGroup) await updateGroup(editGroup._id, form);
+      else           await createGroup(form);
+      setShowForm(false); load();
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Delete this group?')) return;
+    try { await deleteGroup(id); load(); } catch (e) { alert(e.message); }
+  }
+
+  function toggleStudent(id) {
+    setForm(f => ({
+      ...f,
+      studentIds: f.studentIds.includes(id) ? f.studentIds.filter(s => s !== id) : [...f.studentIds, id]
+    }));
+  }
+
+  const studentMap = Object.fromEntries(students.map(s => [s._id, s]));
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-9 h-9 rounded-full border-[3px] border-[var(--border-color)] border-t-[#4e9af1] animate-spin" /></div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xl font-bold text-[var(--text-strong)]">Groups ({groups.length})</h2>
+        <button onClick={openCreate} className="px-4 py-2 bg-[#2f80ed] text-white text-sm font-semibold rounded-lg hover:bg-[#1a6cda] transition-colors">+ New Group</button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {groups.map(g => (
+          <div key={g._id} className="bg-[var(--bg-surface-alt)] border border-[var(--border-color)] rounded-xl p-4">
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="font-semibold text-[var(--text-strong)]">{g.name}</h3>
+              <span className="text-xs text-[var(--text-faint)]">{g.studentIds.length} students</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-3 min-h-[24px]">
+              {g.studentIds.map(id => (
+                <span key={id} className="text-[10px] px-2 py-0.5 rounded-full bg-[#4e9af1]/10 text-[#4e9af1] border border-[#4e9af1]/20">
+                  {studentMap[id]?.name || id}
+                </span>
+              ))}
+              {g.studentIds.length === 0 && <span className="text-xs text-[var(--text-faint)] italic">No students yet</span>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => openEdit(g)} className="text-xs text-[#4e9af1] border border-[#4e9af1]/20 px-3 py-1.5 rounded-lg hover:bg-[#4e9af1]/10 transition-colors">Edit</button>
+              <button onClick={() => handleDelete(g._id)} className="text-xs text-[#f85149] border border-[#f85149]/20 px-3 py-1.5 rounded-lg hover:bg-[#f85149]/10 transition-colors">Delete</button>
+            </div>
+          </div>
+        ))}
+        {groups.length === 0 && (
+          <div className="col-span-2 py-16 text-center text-[var(--text-faint)] text-sm">No groups yet. Create a group to assign students to assignments.</div>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-[var(--bg-surface-alt)] border border-[var(--border-color)] rounded-2xl p-6 w-full max-w-sm max-h-[90vh] flex flex-col">
+            <h3 className="text-base font-semibold text-[var(--text-strong)] mb-4">{editGroup ? 'Edit Group' : 'New Group'}</h3>
+            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">Group Name</label>
+                <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-strong)] focus:outline-none focus:border-[#4e9af1]" />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] mb-2">Students</label>
+                {students.length === 0 && <p className="text-xs text-[var(--text-faint)]">No students available. Add students first.</p>}
+                <div className="space-y-1">
+                  {students.map(s => (
+                    <label key={s._id} className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--bg-surface)] transition-colors">
+                      <input type="checkbox" checked={form.studentIds.includes(s._id)}
+                        onChange={() => toggleStudent(s._id)}
+                        className="w-3.5 h-3.5 accent-[#4e9af1]" />
+                      <span className="text-sm text-[var(--text-strong)]">{s.name}</span>
+                      <span className="text-xs text-[var(--text-faint)] ml-auto">{s.email}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {error && <p className="text-xs text-[#f85149]">{error}</p>}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-muted)]">Cancel</button>
+                <button type="submit" disabled={saving} className="flex-1 py-2 bg-[#2f80ed] text-white text-sm font-semibold rounded-lg hover:bg-[#1a6cda] disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Teacher: Library Policies View ────────────────────────────────────────────
 
 function TeacherLibraryPoliciesView() {
@@ -1344,7 +1552,8 @@ export default function TeacherDashboard() {
   const TEACHER_PAGE_SIZE = 12;
 
   // Create form state
-  const [form, setForm] = useState({ title: '', description: '', timeoutMs: 30000, viewports: ['desktop'] });
+  const [form, setForm] = useState({ title: '', description: '', timeoutMs: 30000, viewports: ['desktop'], groupIds: [] });
+  const [createGroups, setCreateGroups] = useState([]);
   const [files, setFiles] = useState([]);
   const [selectedFileName, setSelectedFileName] = useState(null);
   const [testsJson, setTestsJson] = useState('');
@@ -1436,7 +1645,8 @@ export default function TeacherDashboard() {
         functionalityTests,
         interactionTests,
         viewports: form.viewports,
-        timeoutMs: form.timeoutMs
+        timeoutMs: form.timeoutMs,
+        groupIds: form.groupIds
       });
       setCreateResult(result);
     } catch (err) {
@@ -1475,6 +1685,8 @@ export default function TeacherDashboard() {
         <nav className="flex-1 px-3 py-4 space-y-1">
           {[
             { id: 'list', icon: FiList, label: 'Assignments' },
+            { id: 'students', icon: FiUsers, label: 'Students' },
+            { id: 'groups', icon: FiCheckCircle, label: 'Groups' },
             { id: 'leaderboard', icon: FiBarChart2, label: 'Leaderboard' },
             { id: 'analytics', icon: FiPieChart, label: 'Analytics' },
             { id: 'allSubmissions', icon: FiFileText, label: 'All Submissions' },
@@ -1488,12 +1700,13 @@ export default function TeacherDashboard() {
                 if (item.id === 'create') {
                   setView('create');
                   setCreateResult(null); setCreateError('');
-                  setForm({ title: '', description: '', timeoutMs: 30000, viewports: ['desktop'] });
+                  setForm({ title: '', description: '', timeoutMs: 30000, viewports: ['desktop'], groupIds: [] });
                   const starter = createStarterProject([]);
                   setFiles(starter);
                   setSelectedFileName(starter[0]?.name || null);
                   setTestsJson(''); setTestsJsonError('');
                   setCreateFilesMessage(null);
+                  getGroups().then(setCreateGroups).catch(() => {});
                 } else {
                   setView(item.id);
                 }
@@ -1533,12 +1746,14 @@ export default function TeacherDashboard() {
                 view === 'create' ? 'New Assignment' :
                   view === 'leaderboard' ? 'Leaderboard' :
                     view === 'analytics' ? 'Analytics' :
-                      view === 'submissions' ? `Submissions — ${selectedAssignment?.title}` :
-                        view === 'editTests' ? `Edit Tests — ${selectedAssignment?.title}` :
-                          view === 'studentDetail' ? 'Student Submission' :
-                            view === 'allSubmissions' ? 'All Submissions' :
-                              view === 'progress' ? 'Progress Records' :
-                                view === 'libraries' ? 'Library Policies' : view}
+                      view === 'students' ? 'Students' :
+                        view === 'groups' ? 'Groups' :
+                          view === 'submissions' ? `Submissions — ${selectedAssignment?.title}` :
+                            view === 'editTests' ? `Edit Tests — ${selectedAssignment?.title}` :
+                              view === 'studentDetail' ? 'Student Submission' :
+                                view === 'allSubmissions' ? 'All Submissions' :
+                                  view === 'progress' ? 'Progress Records' :
+                                    view === 'libraries' ? 'Library Policies' : view}
             </h1>
           </div>
           <button
@@ -1598,6 +1813,12 @@ export default function TeacherDashboard() {
               {view === 'editTests' && selectedAssignment && (
                 <EditTestsView assignment={selectedAssignment} onBack={() => setView('list')} />
               )}
+
+              {/* ── STUDENTS VIEW ── */}
+              {view === 'students' && <TeacherStudentsView />}
+
+              {/* ── GROUPS VIEW ── */}
+              {view === 'groups' && <TeacherGroupsView />}
 
               {/* ── LIST VIEW ── */}
               {view === 'list' && (() => {
@@ -1792,6 +2013,37 @@ export default function TeacherDashboard() {
                                 onChange={e => setForm(f => ({ ...f, timeoutMs: Number(e.target.value) }))}
                                 className="w-40 px-3 py-2 bg-[var(--bg-base)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-strong)] focus:outline-none focus:border-[#4e9af1]"
                               />
+                            </div>
+
+                            {/* Assign to Groups */}
+                            <div>
+                              <label className="block text-xs font-semibold text-[var(--text-muted)] mb-2">
+                                Assign to Groups
+                                <span className="ml-1 text-[var(--text-faintest)] font-normal">— only selected groups will see this assignment</span>
+                              </label>
+                              {createGroups.length === 0 ? (
+                                <p className="text-xs text-[var(--text-faint)]">No groups yet. Create groups in the Groups tab first.</p>
+                              ) : (
+                                <div className="space-y-1">
+                                  {createGroups.map(g => (
+                                    <label key={g._id} className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-[var(--bg-base)] transition-colors">
+                                      <input
+                                        type="checkbox"
+                                        checked={(form.groupIds ?? []).includes(g._id)}
+                                        onChange={e => setForm(f => ({
+                                          ...f,
+                                          groupIds: e.target.checked
+                                            ? [...(f.groupIds ?? []), g._id]
+                                            : (f.groupIds ?? []).filter(id => id !== g._id)
+                                        }))}
+                                        className="accent-[#4e9af1]"
+                                      />
+                                      <span className="text-sm text-[var(--text-strong)]">{g.name}</span>
+                                      <span className="text-xs text-[var(--text-faint)] ml-auto">{g.studentIds.length} students</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </section>

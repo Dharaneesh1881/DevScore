@@ -75,6 +75,7 @@ export async function runVisualTest(browser, {
   pageFilePaths,
   submissionId,
   assignmentId,
+  industrySlug,
   referencePages = [],
   allowedDomains = [],
   allowedUrlPrefixes = []
@@ -143,7 +144,7 @@ export async function runVisualTest(browser, {
           let referenceBuffer = null;
           try {
             const [uploadedUrl, downloadedRef] = await Promise.all([
-              uploadScreenshot(Buffer.from(screenshotBuffer), `submissions/${assignmentId}`, studentKey),
+              uploadScreenshot(Buffer.from(screenshotBuffer), industrySlug ? `industries/${industrySlug}/submissions/${submissionId}` : `submissions/${assignmentId}`, studentKey),
               downloadImageAsBuffer(referencePage.url)
             ]);
             studentScreenshotUrl = uploadedUrl;
@@ -184,7 +185,7 @@ export async function runVisualTest(browser, {
             const diffBuffer = PNG.sync.write(diff);
             diffImageUrl = await uploadScreenshot(
               diffBuffer,
-              `submissions/${assignmentId}`,
+              industrySlug ? `industries/${industrySlug}/submissions/${submissionId}` : `submissions/${assignmentId}`,
               `diff_${submissionId}_${referencePage.pageName.replace(/[^\w.-]+/g, '_')}_${referencePage.captureKey || 'full'}_${vp}`
             );
           } catch (err) {
@@ -225,7 +226,7 @@ export async function runVisualTest(browser, {
           const screenshotBuffer = await capturePageScreenshot(page, `file://${pageFilePaths[pageName]}`, 0);
           studentScreenshotUrl = await uploadScreenshot(
             Buffer.from(screenshotBuffer),
-            `submissions/${assignmentId}`,
+            industrySlug ? `industries/${industrySlug}/submissions/${submissionId}` : `submissions/${assignmentId}`,
             `student_${submissionId}_${pageName.replace(/[^\w.-]+/g, '_')}_unexpected`
           );
         } catch (err) {

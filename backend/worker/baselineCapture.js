@@ -26,6 +26,7 @@ export async function captureBaseline({
   bundle,
   pageFilePaths,
   assignmentId,
+  industrySlug,
   viewportNames = ['desktop'],
   allowedDomains = [],
   allowedUrlPrefixes = []
@@ -56,9 +57,12 @@ export async function captureBaseline({
         for (let i = 0; i < captureTargets.length; i++) {
           const capture = captureTargets[i];
           const buffer = await captureViewportScreenshot(page, capture.scrollY, 'png');
+          const folder = industrySlug
+            ? `industries/${industrySlug}/assignments/${assignmentId}`
+            : `assignments/${assignmentId}`;
           const url = await uploadScreenshot(
             buffer,
-            `assignments/${assignmentId}`,
+            folder,
             `reference_${safePageName}_${capture.key}_${vp}`
           );
 

@@ -1,24 +1,30 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { register } from '../api/index.js';
 
 export default function RegisterPage() {
   const { login: authLogin } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const industrySlug = location.state?.industrySlug || '';
+
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const roleHome = (role) => ({ teacher: '/teacher', student: '/student' }[role] || '/');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!industrySlug) { setError('No organisation selected. Please go back and select one.'); return; }
     setError('');
     setLoading(true);
     try {
-      const { token, user } = await register(form.name, form.email, form.password, form.role);
+      const { token, user } = await register(form.name, form.email, form.password, form.role, industrySlug);
       authLogin(token, user);
-      navigate(user.role === 'teacher' ? '/teacher' : '/student', { replace: true });
+      navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
