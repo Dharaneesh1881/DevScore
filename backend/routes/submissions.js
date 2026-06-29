@@ -8,45 +8,50 @@ const router = Router();
 
 // POST /api/submissions — student submits code for evaluation
 router.post('/submissions', requireAuth, async (req, res) => {
-  const { Submission, Assignment } = req.db;
-  const { files: incomingFiles, assignmentId, selectedLibraryIds = [] } = req.body;
-  if (!assignmentId) return res.status(400).json({ error: 'assignmentId is required' });
-
-  const assignment = await Assignment.findById(assignmentId);
-  if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
-
-  let normalized;
   try {
-    normalized = validateAndNormalizeFiles(incomingFiles || req.body);
-  } catch (err) {
-    if (err instanceof ProjectFilesError) {
-      return res.status(err.status).json({ error: err.message, details: err.details || [] });
+    const { Submission, Assignment } = req.db;
+    const { files: incomingFiles, assignmentId, selectedLibraryIds = [] } = req.body;
+    if (!assignmentId) return res.status(400).json({ error: 'assignmentId is required' });
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+
+    let normalized;
+    try {
+      normalized = validateAndNormalizeFiles(incomingFiles || req.body);
+    } catch (err) {
+      if (err instanceof ProjectFilesError) {
+        return res.status(err.status).json({ error: err.message, details: err.details || [] });
+      }
+      throw err;
     }
-    throw err;
+
+    const submissionId = uuidv4();
+
+    await Submission.create({
+      submissionId,
+      assignmentId,
+      studentId:   req.user.id,
+      industryId:  req.user.industryId,
+      files:       normalized.files,
+      status:      'pending',
+      selectedLibraryIds: Array.isArray(selectedLibraryIds) ? selectedLibraryIds : []
+    });
+
+    await evaluationQueue.add('evaluate', {
+      submissionId,
+      assignmentId,
+      industrySlug: req.user.industrySlug
+    }, {
+      attempts: 2,
+      backoff: { type: 'fixed', delay: 3000 }
+    });
+
+    return res.status(202).json({ submissionId, fileCount: normalized.files.length, warnings: normalized.warnings });
+  } catch (err) {
+    console.error('[POST /submissions] error:', err);
+    return res.status(500).json({ error: 'Submission failed', details: err.message });
   }
-
-  const submissionId = uuidv4();
-
-  await Submission.create({
-    submissionId,
-    assignmentId,
-    studentId:   req.user.id,
-    industryId:  req.user.industryId,
-    files:       normalized.files,
-    status:      'pending',
-    selectedLibraryIds: Array.isArray(selectedLibraryIds) ? selectedLibraryIds : []
-  });
-
-  await evaluationQueue.add('evaluate', {
-    submissionId,
-    assignmentId,
-    industrySlug: req.user.industrySlug
-  }, {
-    attempts: 2,
-    backoff: { type: 'fixed', delay: 3000 }
-  });
-
-  return res.status(202).json({ submissionId, fileCount: normalized.files.length, warnings: normalized.warnings });
 });
 
 // GET /api/result/:id — poll for evaluation result

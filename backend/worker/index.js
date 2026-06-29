@@ -39,7 +39,9 @@ const worker = new Worker('evaluation', async (job) => {
   }
 }, {
   connection: redisConnection,
-  concurrency: 1
+  concurrency: 1,
+  // Upstash does not allow the INFO command — skip BullMQ's version check
+  skipVersionCheck: true
 });
 
 worker.on('completed', (job) => console.log(`Job ${job.id} completed`));

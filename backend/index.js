@@ -31,6 +31,9 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: allowedOrigins, methods: ['GET', 'POST'] }
 });
 
+// Trust the first proxy hop (Render / Cloudflare) so rate-limit sees the real client IP
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '2mb' }));
@@ -81,6 +84,12 @@ redisSub.on('message', (channel, message) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
   socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
+});
+
+// Global error handler — catches any unhandled errors from routes/middleware
+app.use((err, req, res, _next) => {
+  console.error('[Unhandled error]', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 3001;
