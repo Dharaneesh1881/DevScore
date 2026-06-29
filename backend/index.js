@@ -3,6 +3,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 
 // Master DB — must be imported before any master models are used
 import './db/masterDb.js';
@@ -29,11 +31,24 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: allowedOrigins, methods: ['GET', 'POST'] }
 });
 
+app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '2mb' }));
 app.set('io', io);
 
+// Health check for uptime monitors and load balancers
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+const submissionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many submissions, please wait a minute.' },
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/api/submissions', submissionLimiter);
 app.use('/api', submissionsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/assignments', assignmentsRouter);
