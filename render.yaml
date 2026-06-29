@@ -23,8 +23,12 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: ADMIN_SECRET
-        sync: false          # optional — if used
+      - key: PLATFORM_ADMIN_EMAIL
+        sync: false          # e.g. admin@devscore.io
+      - key: PLATFORM_ADMIN_PASSWORD
+        sync: false          # strong password for platform admin login
+      - key: PLATFORM_ADMIN_NAME
+        sync: false          # e.g. Platform Admin
 
   # ── 2. Evaluation Worker (BullMQ + Puppeteer) ────────────────────────────
   - type: worker
