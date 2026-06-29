@@ -3,6 +3,7 @@ services:
   - type: web
     name: webeval-api
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: node index.js
@@ -34,6 +35,7 @@ services:
   - type: worker
     name: webeval-worker
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm install && npx puppeteer browsers install chrome
     startCommand: node worker/index.js
