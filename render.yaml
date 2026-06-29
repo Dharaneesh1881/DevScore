@@ -32,12 +32,12 @@ services:
         sync: false          # e.g. Platform Admin
 
   # ── 2. Evaluation Worker (BullMQ + Puppeteer) ────────────────────────────
-  - type: worker
+  - type: web
     name: webeval-worker
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npx puppeteer browsers install chrome
+    buildCommand: npm install && PUPPETEER_CACHE_DIR=/opt/render/.cache/puppeteer npx puppeteer browsers install chrome
     startCommand: node worker/index.js
     envVars:
       - key: NODE_ENV
@@ -56,3 +56,5 @@ services:
         sync: false
       - key: PUPPETEER_CACHE_DIR
         value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: true

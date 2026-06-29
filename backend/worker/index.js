@@ -7,7 +7,7 @@ import { runEvaluation } from './evaluator.js';
 import { getTenantConnection, getTenantModels } from '../db/connections.js';
 
 // ── Minimal HTTP server for Render health check ───────────────────────────────
-const PORT = process.env.WORKER_PORT || 3002;
+const PORT = process.env.PORT || 3002;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Worker OK');
